@@ -1,0 +1,100 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String          @id @default(cuid())
+  email          String?         @unique
+  name           String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  socialAccounts SocialAccount[]
+  posts          Post[]
+}
+
+model SocialAccount {
+  id                    String       @id @default(cuid())
+  userId                String
+  user                  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider              String       // "linkedin" | "x" | "mock"
+  providerAccountId     String
+  displayName           String
+  username              String?
+  avatarUrl             String?
+  encryptedAccessToken  String
+  encryptedRefreshToken String?
+  tokenExpiresAt        DateTime?
+  scopes                String?
+  status                String       @default("active") // "active" | "expired" | "revoked"
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  postTargets           PostTarget[]
+
+  @@unique([provider, providerAccountId])
+}
+
+model Post {
+  id               String       @id @default(cuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  canonicalContent String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  targets          PostTarget[]
+  media            Media[]
+}
+
+model PostTarget {
+  id               String           @id @default(cuid())
+  postId           String
+  post             Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccountId  String
+  socialAccount    SocialAccount    @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  contentOverride  String?
+  publishAtUtc     DateTime
+  timezone         String
+  status           String           @default("scheduled") // "draft" | "scheduled" | "publishing" | "published" | "retryable_failure" | "failed" | "canceled"
+  nextAttemptAt    DateTime?
+  attemptCount     Int              @default(0)
+  lockedAt         DateTime?
+  lockToken        String?
+  providerPostId   String?
+  publishedAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  attempts         PublishAttempt[]
+
+  @@index([status, publishAtUtc])
+  @@index([status, nextAttemptAt])
+}
+
+model PublishAttempt {
+  id                 String     @id @default(cuid())
+  postTargetId       String
+  postTarget         PostTarget @relation(fields: [postTargetId], references: [id], onDelete: Cascade)
+  attemptNumber      Int
+  startedAt          DateTime   @default(now())
+  finishedAt         DateTime?
+  outcome            String     // "success" | "failure"
+  errorCode          String?
+  errorMessageSafe   String?
+  providerRequestId  String?
+  createdAt          DateTime   @default(now())
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: SetNull)
+  filePath  String
+  fileName  String
+  mimeType  String
+  sizeBytes Int
+  checksum  String?
+  createdAt DateTime @default(now())
+}

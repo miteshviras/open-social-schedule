@@ -1,26 +1,22 @@
 {
-  "name": "open-social-schedule",
+  "name": "open-social-scheduler-monorepo",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.3.5",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "dev:web": "npm run dev --workspace=@open-social/web",
+    "dev:api": "npm run dev --workspace=@open-social/api",
+    "dev:worker": "npm run dev --workspace=@open-social/worker",
+    "build:packages": "npm run build --workspace=@open-social/database --workspace=@open-social/core --workspace=@open-social/providers",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.5",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@types/node": "^22.13.0",
+    "typescript": "^5.7.0"
   }
 }

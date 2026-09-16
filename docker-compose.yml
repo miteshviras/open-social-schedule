@@ -1,0 +1,53 @@
+services:
+  database:
+    image: postgres:16-alpine
+    container_name: open_social_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: social_scheduler
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d social_scheduler"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: open_social_web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgrespassword@database:5432/social_scheduler?schema=public
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET:-change_me_to_a_32_char_secret_key!}
+    depends_on:
+      database:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: open_social_worker
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgrespassword@database:5432/social_scheduler?schema=public
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET:-change_me_to_a_32_char_secret_key!}
+      - WORKER_POLL_INTERVAL_SECONDS=5
+    depends_on:
+      database:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
