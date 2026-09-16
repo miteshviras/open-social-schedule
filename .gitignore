@@ -14,7 +14,8 @@
 /coverage
 
 # next.js
-/.next/
+.next/
+**/.next/
 /out/
 
 # production
@@ -30,12 +31,16 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
+!.env.example
 
-# vercel
-.vercel
+# dist & local databases
+dist/
+*.db
+*.db-journal
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+

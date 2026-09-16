@@ -142,6 +142,8 @@ export async function start() {
   }
 }
 
-if (process.env.NODE_ENV !== 'test') {
+// Auto-start if executed directly
+if (process.argv[1] && process.argv[1].endsWith('index.js')) {
   start();
 }
+

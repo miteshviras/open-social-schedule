@@ -4,32 +4,32 @@ Tracking progress across all phases. Each phase will be committed to git upon co
 
 ---
 
-## 📌 Phase 1: Foundation
-- [ ] **Task 1.1**: Monorepo Scaffolding & Configuration
+## 📌 Phase 1: Foundation (COMPLETED)
+- [x] **Task 1.1**: Monorepo Scaffolding & Configuration
   - Setup npm workspaces for `apps/*` and `packages/*`.
   - Root `package.json`, shared TypeScript config (`tsconfig.base.json`).
   - Move/configure Next.js under `apps/web`.
-- [ ] **Task 1.2**: Database Package (`packages/database`)
+- [x] **Task 1.2**: Database Package (`packages/database`)
   - Setup Prisma schema with models: `User`, `SocialAccount`, `Post`, `PostTarget`, `PublishAttempt`, `Media`.
   - Support SQLite (local zero-setup) and PostgreSQL (production/docker).
   - Generate Prisma Client and export typed DB singleton.
-- [ ] **Task 1.3**: Encryption & Security Vault
+- [x] **Task 1.3**: Encryption & Security Vault
   - AES-256-GCM encryption/decryption utilities for sensitive OAuth tokens at rest.
   - Key derivation and environment secret guards.
-- [ ] **Task 1.4**: Core Domain & Shared Service Layer (`packages/core`)
+- [x] **Task 1.4**: Core Domain & Shared Service Layer (`packages/core`)
   - Canonical domain types and interfaces.
   - State machine transition definitions and guards.
   - Timezone-aware date calculations and validation rules.
   - Application services (`PostService`, `ScheduleService`, `AccountService`).
-- [ ] **Task 1.5**: Docker Compose & Local Orchestration
+- [x] **Task 1.5**: Docker Compose & Local Orchestration
   - `docker-compose.yml` defining `web`, `worker`, and `postgres`.
   - Multi-stage `Dockerfile` definitions.
   - `.env.example` with comprehensive documentation of required variables.
-- [ ] **Task 1.6**: Foundation Verification & Tests
+- [x] **Task 1.6**: Foundation Verification & Tests
   - Unit tests for token encryption roundtrips.
   - Unit tests for state machine transitions.
   - Health check endpoint verification.
-- [ ] **Task 1.7**: Phase 1 Git Commit
+- [x] **Task 1.7**: Phase 1 Git Commit
 
 ---
 
