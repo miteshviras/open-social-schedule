@@ -55,34 +55,34 @@ Tracking progress across all phases. Each phase will be committed to git upon co
 
 ---
 
-## 📌 Phase 3: Scheduling UX (Web Application)
-- [ ] **Task 3.1**: Modern Dashboard Layout & Shell (`apps/web`)
+## 📌 Phase 3: Scheduling UX (Web Application) (COMPLETED)
+- [x] **Task 3.1**: Modern Dashboard Layout & Shell (`apps/web`)
   - Responsive navigation (Dashboard, Queue, Calendar, Compose, Accounts, Settings).
   - Modern UI theme with Tailwind CSS.
-- [ ] **Task 3.2**: Social Accounts Management UI
-  - Connect/Disconnect buttons for LinkedIn and X.
+- [x] **Task 3.2**: Social Accounts Management UI
+  - Connect/Disconnect buttons for LinkedIn, X, and Mock.
   - Account status badges (Active, Expired, Revoked).
   - Reconnection banner for expired tokens.
-- [ ] **Task 3.3**: Post Composer
+- [x] **Task 3.3**: Post Composer
   - Unified compose interface with canonical text.
   - Platform target toggles with real-time character count limits.
   - Platform-specific text overrides.
-- [ ] **Task 3.4**: Scheduling Engine & Timezone Picker
+- [x] **Task 3.4**: Scheduling Engine & Timezone Picker
   - Explicit date/time selector with IANA timezone dropdown.
   - Publish Now vs Schedule Later options.
-- [ ] **Task 3.5**: Queue & List Views
+- [x] **Task 3.5**: Queue & List Views
   - Filter by status (`SCHEDULED`, `PUBLISHING`, `PUBLISHED`, `FAILED`).
   - Inline cancel and reschedule actions.
-- [ ] **Task 3.6**: Interactive Calendar View
+- [x] **Task 3.6**: Interactive Calendar View
   - Month and week calendar views with scheduled post indicators.
-- [ ] **Task 3.7**: Bulk Scheduler (CSV / JSON)
+- [x] **Task 3.7**: Bulk Scheduler (CSV / JSON)
   - File upload and copy-paste bulk importer (100+ posts).
   - Cadence configuration (e.g. every weekday at 9:00 AM).
   - Interactive preview table with row-level validation and error highlighting.
-- [ ] **Task 3.8**: Post Details & History View
+- [x] **Task 3.8**: Post Details & History View
   - Full audit trail of publish attempts with safe error messages.
   - Retry button for failed posts.
-- [ ] **Task 3.9**: Phase 3 Git Commit
+- [x] **Task 3.9**: Phase 3 Git Commit & Push
 
 ---
 
