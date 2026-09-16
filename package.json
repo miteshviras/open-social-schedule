@@ -2,6 +2,7 @@
   "name": "open-social-scheduler-monorepo",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -10,9 +11,11 @@
     "dev:web": "npm run dev --workspace=@open-social/web",
     "dev:api": "npm run dev --workspace=@open-social/api",
     "dev:worker": "npm run dev --workspace=@open-social/worker",
-    "build:packages": "npm run build --workspace=@open-social/database --workspace=@open-social/core --workspace=@open-social/providers",
+    "dev:mcp": "node packages/mcp/dist/index.js",
+    "build:packages": "npm run build --workspace=@open-social/database --workspace=@open-social/core --workspace=@open-social/providers --workspace=@open-social/mcp",
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "seed:demo": "node --experimental-strip-types scripts/seed-demo.ts",
+    "test": "node --test packages/database/dist/encryption.test.js packages/core/dist/state-machine.test.js packages/providers/dist/providers.test.js apps/api/dist/health.test.js apps/worker/dist/worker.test.js packages/mcp/dist/mcp.test.js",
     "lint": "npm run lint --workspaces --if-present"
   },
   "devDependencies": {
