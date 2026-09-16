@@ -86,25 +86,25 @@ Tracking progress across all phases. Each phase will be committed to git upon co
 
 ---
 
-## 📌 Phase 4: Publishing Worker Engine
-- [ ] **Task 4.1**: Worker Daemon Scaffolding (`apps/worker`)
+## 📌 Phase 4: Publishing Worker Engine (COMPLETED)
+- [x] **Task 4.1**: Worker Daemon Scaffolding (`apps/worker`)
   - Standalone Node.js process with configurable polling loop.
   - Graceful shutdown handling (`SIGINT`, `SIGTERM`).
-- [ ] **Task 4.2**: Atomic Due-Job Claiming
+- [x] **Task 4.2**: Atomic Due-Job Claiming
   - Database row-level locking (`locked_at`, `lock_token`).
   - Lease duration management to prevent worker race conditions.
-- [ ] **Task 4.3**: Publishing Execution Pipeline
+- [x] **Task 4.3**: Publishing Execution Pipeline
   - Transition from `SCHEDULED` $\rightarrow$ `PUBLISHING`.
   - Invoke target provider adapter with decrypted token.
   - Handle outcomes (`PUBLISHED`, `RETRYABLE_FAILURE`, `FAILED`).
-- [ ] **Task 4.4**: Bounded Exponential Backoff
+- [x] **Task 4.4**: Bounded Exponential Backoff
   - Retry scheduler for transient errors with jitter and maximum retry cap.
-- [ ] **Task 4.5**: Crash Recovery & Stale Lease Reclaiming
+- [x] **Task 4.5**: Crash Recovery & Stale Lease Reclaiming
   - Detect expired leases from crashed workers and safely reset state.
-- [ ] **Task 4.6**: Safe Audit Logging
+- [x] **Task 4.6**: Safe Audit Logging
   - Durable `PublishAttempt` records without token or secret leakage.
-- [ ] **Task 4.7**: Worker Concurrency & Idempotency Tests
-- [ ] **Task 4.8**: Phase 4 Git Commit
+- [x] **Task 4.7**: Worker Concurrency & Idempotency Tests
+- [x] **Task 4.8**: Phase 4 Git Commit & Push
 
 ---
 

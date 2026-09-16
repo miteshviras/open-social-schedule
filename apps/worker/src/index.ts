@@ -1,46 +1,23 @@
-import { prisma } from '@open-social/database';
+import { PublishWorker } from './worker.js';
 
-const POLL_INTERVAL_MS = (Number(process.env.WORKER_POLL_INTERVAL_SECONDS) || 5) * 1000;
-let isRunning = true;
+export * from './worker.js';
 
-async function pollDueJobs() {
-  try {
-    const nowUtc = new Date();
-    // Count pending scheduled items
-    const dueCount = await prisma.postTarget.count({
-      where: {
-        status: { in: ['scheduled', 'retryable_failure'] },
-        publishAtUtc: { lte: nowUtc },
-      },
-    });
-
-    if (dueCount > 0) {
-      console.log(`[Worker] Detected ${dueCount} due post targets at ${nowUtc.toISOString()}`);
-    }
-  } catch (err) {
-    console.error('[Worker] Error checking due jobs:', err);
-  }
-}
-
-async function startWorker() {
-  console.log(`[Worker] Starting background publishing worker (polling every ${POLL_INTERVAL_MS / 1000}s)...`);
-
-  while (isRunning) {
-    await pollDueJobs();
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-  }
-}
+const worker = new PublishWorker();
 
 process.on('SIGINT', () => {
-  console.log('[Worker] Graceful shutdown requested (SIGINT)...');
-  isRunning = false;
+  console.log('Received SIGINT. Initiating graceful shutdown of publish worker...');
+  worker.stop();
 });
 
 process.on('SIGTERM', () => {
-  console.log('[Worker] Graceful shutdown requested (SIGTERM)...');
-  isRunning = false;
+  console.log('Received SIGTERM. Initiating graceful shutdown of publish worker...');
+  worker.stop();
 });
 
-if (process.env.NODE_ENV !== 'test') {
-  startWorker();
+// Auto-start if executed directly
+if (process.argv[1] && process.argv[1].endsWith('index.js')) {
+  worker.start().catch((err) => {
+    console.error('Fatal worker error:', err);
+    process.exit(1);
+  });
 }

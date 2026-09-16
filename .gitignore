@@ -37,8 +37,11 @@ yarn-error.log*
 
 # dist & local databases
 dist/
+**/dist/
 *.db
+**/*.db
 *.db-journal
+**/*.db-journal
 
 # typescript
 *.tsbuildinfo

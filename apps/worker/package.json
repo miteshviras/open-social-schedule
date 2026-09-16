@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@open-social/core": "*",
-    "@open-social/database": "*"
+    "@open-social/database": "*",
+    "@open-social/providers": "*"
   },
   "devDependencies": {
     "@types/node": "^22.13.0",
