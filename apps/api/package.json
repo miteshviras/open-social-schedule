@@ -13,6 +13,7 @@
     "@fastify/cors": "^10.0.2",
     "@open-social/core": "*",
     "@open-social/database": "*",
+    "@open-social/providers": "*",
     "fastify": "^5.2.1"
   },
   "devDependencies": {

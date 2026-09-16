@@ -33,25 +33,25 @@ Tracking progress across all phases. Each phase will be committed to git upon co
 
 ---
 
-## 📌 Phase 2: Social Providers (LinkedIn & X)
-- [ ] **Task 2.1**: Common Provider Interface (`packages/providers`)
+## 📌 Phase 2: Social Providers (LinkedIn & X) (COMPLETED)
+- [x] **Task 2.1**: Common Provider Interface (`packages/providers`)
   - Define `SocialProvider` contract (`validatePost`, `publishPost`, `getAccount`, `refreshAuth`).
   - Standardized `ProviderPostInput`, `ValidationResult`, `PublishResult`, and `SocialAccountProfile`.
-- [ ] **Task 2.2**: LinkedIn Provider Adapter
+- [x] **Task 2.2**: LinkedIn Provider Adapter
   - OAuth 2.0 PKCE authorization URL and token exchange.
   - LinkedIn v2 / UGC post publication logic.
   - Profile retrieval and token refresh.
-- [ ] **Task 2.3**: X (Twitter) Provider Adapter
+- [x] **Task 2.3**: X (Twitter) Provider Adapter
   - OAuth 2.0 PKCE flow with code challenge.
   - X API v2 Tweet creation endpoint.
   - Character count validation and media handling.
-- [ ] **Task 2.4**: Provider Error Classification Engine
+- [x] **Task 2.4**: Provider Error Classification Engine
   - Classify transient (rate limits 429, timeouts, 5xx) vs permanent errors (auth revoked 401, validation 400).
-- [ ] **Task 2.5**: Mock Social Provider
+- [x] **Task 2.5**: Mock Social Provider
   - Zero-credential provider simulator for local testing and CI.
-- [ ] **Task 2.6**: Provider Adapter Tests
+- [x] **Task 2.6**: Provider Adapter Tests
   - Unit tests with mocked HTTP responses.
-- [ ] **Task 2.7**: Phase 2 Git Commit
+- [x] **Task 2.7**: Phase 2 Git Commit & Push
 
 ---
 

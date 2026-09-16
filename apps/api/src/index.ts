@@ -6,6 +6,7 @@ import {
   PostService,
   ScheduleService,
 } from '@open-social/core';
+import { ProviderRegistry } from '@open-social/providers';
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -39,7 +40,7 @@ export async function buildApp() {
   });
 
   // -------------------------------------------------------------
-  // Social Accounts Endpoints
+  // Social Accounts & OAuth Endpoints
   // -------------------------------------------------------------
   fastify.get('/api/social-accounts', async () => {
     return await AccountService.listAccounts();
@@ -49,6 +50,75 @@ export async function buildApp() {
     const { id } = request.params as { id: string };
     await AccountService.disconnectAccount(id);
     return reply.send({ success: true });
+  });
+
+  // Get OAuth initiation URL
+  fastify.get('/api/auth/:provider/url', async (request, reply) => {
+    const { provider } = request.params as { provider: string };
+    if (!ProviderRegistry.has(provider)) {
+      return reply.status(400).send({ error: `Unsupported provider: ${provider}` });
+    }
+
+    const instance = ProviderRegistry.get(provider);
+    const state = `st_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const url = instance.getAuthorizationUrl({ state });
+
+    return reply.send({ url, state, provider });
+  });
+
+  // Handle OAuth callback
+  fastify.get('/api/auth/:provider/callback', async (request, reply) => {
+    const { provider } = request.params as { provider: string };
+    const query = request.query as { code?: string; state?: string; error?: string };
+
+    if (query.error) {
+      return reply.redirect(`http://localhost:3000/accounts?error=${encodeURIComponent(query.error)}`);
+    }
+
+    if (!query.code) {
+      return reply.status(400).send({ error: 'Missing authorization code' });
+    }
+
+    try {
+      const instance = ProviderRegistry.get(provider);
+      const tokenResult = await instance.exchangeCodeForToken({ code: query.code });
+
+      // Connect and encrypt tokens at rest
+      await AccountService.connectAccount({
+        userId: 'default_local_user',
+        provider: provider as 'linkedin' | 'x' | 'mock',
+        providerAccountId: tokenResult.profile.providerAccountId,
+        displayName: tokenResult.profile.displayName,
+        username: tokenResult.profile.username,
+        avatarUrl: tokenResult.profile.avatarUrl,
+        accessToken: tokenResult.accessToken,
+        refreshToken: tokenResult.refreshToken,
+        tokenExpiresAt: tokenResult.expiresInSeconds
+          ? new Date(Date.now() + tokenResult.expiresInSeconds * 1000)
+          : undefined,
+      });
+
+      return reply.redirect('http://localhost:3000/accounts?connected=true');
+    } catch (err: any) {
+      return reply.redirect(`http://localhost:3000/accounts?error=${encodeURIComponent(err.message)}`);
+    }
+  });
+
+  // Manual connect endpoint (useful for demo/mock accounts and developer testing)
+  fastify.post('/api/social-accounts/connect', async (request, reply) => {
+    const body = request.body as any;
+    const account = await AccountService.connectAccount({
+      userId: body.userId || 'default_local_user',
+      provider: body.provider,
+      providerAccountId: body.providerAccountId,
+      displayName: body.displayName,
+      username: body.username,
+      avatarUrl: body.avatarUrl,
+      accessToken: body.accessToken,
+      refreshToken: body.refreshToken,
+      tokenExpiresAt: body.tokenExpiresAt ? new Date(body.tokenExpiresAt) : undefined,
+    });
+    return reply.status(201).send(account);
   });
 
   // -------------------------------------------------------------
