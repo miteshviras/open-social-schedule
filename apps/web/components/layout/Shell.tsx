@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Logo from '../Logo';
 import {
   LayoutDashboard,
   Clock,
@@ -60,18 +61,10 @@ export default function Shell({ children }: ShellProps) {
       <aside className="w-64 border-r border-slate-200 bg-white flex flex-col justify-between flex-shrink-0">
         <div>
           {/* Logo Brand */}
-          <div className="p-6 border-b border-slate-100 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20">
-              OS
-            </div>
-            <div>
-              <h1 className="font-bold text-sm tracking-tight text-slate-900 leading-none">
-                Open Social
-              </h1>
-              <p className="text-[11px] text-slate-500 font-medium tracking-wide mt-1">
-                Local-First Scheduler
-              </p>
-            </div>
+          <div className="p-5 border-b border-slate-100">
+            <Link href="/" className="hover:opacity-90 transition">
+              <Logo size={36} />
+            </Link>
           </div>
 
           {/* Navigation Links */}
