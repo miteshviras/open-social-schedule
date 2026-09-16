@@ -108,26 +108,26 @@ Tracking progress across all phases. Each phase will be committed to git upon co
 
 ---
 
-## 📌 Phase 5: MCP (Model Context Protocol) Server
-- [ ] **Task 5.1**: MCP Server Scaffolding (`packages/mcp`)
+## 📌 Phase 5: MCP (Model Context Protocol) Server (COMPLETED)
+- [x] **Task 5.1**: MCP Server Scaffolding (`packages/mcp`)
   - Stdio MCP server setup using `@modelcontextprotocol/sdk`.
-- [ ] **Task 5.2**: Read Tools Implementation
+- [x] **Task 5.2**: Read Tools Implementation
   - `social_list_accounts`
   - `social_list_scheduled`
   - `social_get_scheduled_post`
   - `social_get_publish_status`
-- [ ] **Task 5.3**: Mutation Tools Implementation
+- [x] **Task 5.3**: Mutation Tools Implementation
   - `social_schedule_post`
   - `social_schedule_bulk`
   - `social_update_schedule`
   - `social_cancel_schedule`
   - `social_publish_now`
-- [ ] **Task 5.4**: Core Service Binding
+- [x] **Task 5.4**: Core Service Binding
   - Connect all tools directly to `@open-social/core` services.
-- [ ] **Task 5.5**: Secret Sanitization Boundary
+- [x] **Task 5.5**: Secret Sanitization Boundary
   - Verify that tool responses contain IDs, statuses, and times—never tokens.
-- [ ] **Task 5.6**: MCP Integration Tests
-- [ ] **Task 5.7**: Phase 5 Git Commit
+- [x] **Task 5.6**: MCP Integration Tests
+- [x] **Task 5.7**: Phase 5 Git Commit & Push
 
 ---
 

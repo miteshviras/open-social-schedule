@@ -93,6 +93,12 @@ export class ScheduleService {
     }>
   ) {
     return await prisma.$transaction(async (tx) => {
+      await tx.user.upsert({
+        where: { id: userId },
+        update: {},
+        create: { id: userId, email: `${userId}@local.dev` },
+      });
+
       const createdTargets = [];
 
       for (const item of items) {

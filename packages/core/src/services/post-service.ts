@@ -19,6 +19,12 @@ export class PostService {
       }
     }
 
+    await prisma.user.upsert({
+      where: { id: input.userId },
+      update: {},
+      create: { id: input.userId, email: `${input.userId}@local.dev` },
+    });
+
     return await prisma.post.create({
       data: {
         userId: input.userId,

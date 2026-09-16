@@ -22,6 +22,13 @@ export class AccountService {
     const encryptedAccessToken = encryptSecret(input.accessToken);
     const encryptedRefreshToken = input.refreshToken ? encryptSecret(input.refreshToken) : null;
 
+    // Ensure local user exists to satisfy foreign key
+    await prisma.user.upsert({
+      where: { id: input.userId },
+      update: {},
+      create: { id: input.userId, email: `${input.userId}@local.dev` },
+    });
+
     const account = await prisma.socialAccount.upsert({
       where: {
         provider_providerAccountId: {
