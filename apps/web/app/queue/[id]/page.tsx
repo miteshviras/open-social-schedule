@@ -23,6 +23,7 @@ import {
   FileText,
   AlertTriangle,
 } from 'lucide-react';
+import { DeleteConfirmModal } from '../../../components/DeleteConfirmModal';
 
 interface Attempt {
   id: string;
@@ -73,6 +74,35 @@ export default function QueueDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingMode, setDeletingMode] = useState<'permanent' | 'cancel' | null>(null);
+
+  async function handleConfirmDelete(mode: 'permanent' | 'cancel') {
+    if (!id) return;
+    try {
+      setDeletingMode(mode);
+      const url =
+        mode === 'permanent'
+          ? `/api/post-targets/${id}?permanent=true`
+          : `/api/post-targets/${id}`;
+      const res = await fetch(url, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to delete target');
+      }
+      setIsDeleteModalOpen(false);
+      if (mode === 'permanent') {
+        router.push('/queue');
+      } else {
+        setNotice({ type: 'success', message: 'Target schedule has been canceled.' });
+        await loadDetails();
+      }
+    } catch (err: any) {
+      setNotice({ type: 'error', message: err.message || 'Error deleting target.' });
+    } finally {
+      setDeletingMode(null);
+    }
+  }
 
   async function loadDetails() {
     if (!id) return;
@@ -218,14 +248,15 @@ export default function QueueDetailPage() {
             </button>
           )}
 
-          {/* Delete Button */}
-          <Link
-            href={`/queue/${target.id}/delete`}
-            className="px-3 py-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition"
+          {/* Delete Button (Opens Confirmation Modal) */}
+          <button
+            type="button"
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="px-3 py-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5 text-rose-600" />
             Delete
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -554,6 +585,25 @@ export default function QueueDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        target={{
+          id: target.id,
+          provider: target.socialAccount.provider,
+          displayName: target.socialAccount.displayName,
+          username: target.socialAccount.username,
+          publishAtUtc: target.publishAtUtc,
+          timezone: target.timezone,
+          status: target.status,
+          content: effectiveContent,
+          attemptCount: target.attemptCount,
+        }}
+        deletingMode={deletingMode}
+      />
     </div>
   );
 }

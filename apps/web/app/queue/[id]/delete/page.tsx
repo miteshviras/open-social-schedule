@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   FileText,
 } from 'lucide-react';
+import { DeleteConfirmModal } from '../../../../components/DeleteConfirmModal';
 
 interface TargetDetail {
   id: string;
@@ -44,6 +45,7 @@ export default function DeleteQueueTargetPage() {
   const [target, setTarget] = useState<TargetDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<'permanent' | 'cancel' | null>(null);
+  const [pendingConfirmMode, setPendingConfirmMode] = useState<'permanent' | 'cancel' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -244,21 +246,12 @@ export default function DeleteQueueTargetPage() {
           </div>
 
           <button
-            onClick={() => handleDelete('permanent')}
+            onClick={() => setPendingConfirmMode('permanent')}
             disabled={Boolean(deleting)}
             className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition flex-shrink-0 cursor-pointer disabled:opacity-50"
           >
-            {deleting === 'permanent' ? (
-              <>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                Deleting...
-              </>
-            ) : (
-              <>
-                <Trash2 className="w-3.5 h-3.5" />
-                Permanent Delete
-              </>
-            )}
+            <Trash2 className="w-3.5 h-3.5" />
+            Permanent Delete
           </button>
         </div>
 
@@ -276,21 +269,12 @@ export default function DeleteQueueTargetPage() {
             </div>
 
             <button
-              onClick={() => handleDelete('cancel')}
+              onClick={() => setPendingConfirmMode('cancel')}
               disabled={Boolean(deleting)}
               className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition flex-shrink-0 cursor-pointer disabled:opacity-50"
             >
-              {deleting === 'cancel' ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  Canceling...
-                </>
-              ) : (
-                <>
-                  <XCircle className="w-3.5 h-3.5" />
-                  Cancel Schedule
-                </>
-              )}
+              <XCircle className="w-3.5 h-3.5" />
+              Cancel Schedule
             </button>
           </div>
         )}
@@ -305,6 +289,27 @@ export default function DeleteQueueTargetPage() {
           Keep Post & Return to Details
         </Link>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {target && (
+        <DeleteConfirmModal
+          isOpen={Boolean(pendingConfirmMode)}
+          onClose={() => setPendingConfirmMode(null)}
+          onConfirm={handleDelete}
+          target={{
+            id: target.id,
+            provider: target.socialAccount.provider,
+            displayName: target.socialAccount.displayName,
+            username: target.socialAccount.username,
+            publishAtUtc: target.publishAtUtc,
+            timezone: target.timezone,
+            status: target.status,
+            content: effectiveContent,
+            attemptCount: target.attemptCount,
+          }}
+          deletingMode={deleting}
+        />
+      )}
     </div>
   );
 }

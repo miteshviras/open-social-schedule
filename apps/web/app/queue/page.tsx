@@ -18,6 +18,7 @@ import {
   Edit3,
   Trash2,
 } from 'lucide-react';
+import { DeleteConfirmModal, type DeleteModalTarget } from '../../components/DeleteConfirmModal';
 
 interface Attempt {
   id: string;
@@ -54,6 +55,9 @@ export default function QueuePage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteModalTarget | null>(null);
+  const [deletingMode, setDeletingMode] = useState<'permanent' | 'cancel' | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   async function loadTargets() {
     try {
@@ -84,13 +88,33 @@ export default function QueuePage() {
     }
   }
 
-  async function handleCancel(id: string) {
-    if (!confirm('Cancel this scheduled publication?')) return;
+  async function handleConfirmDelete(mode: 'permanent' | 'cancel') {
+    if (!deleteTarget) return;
     try {
-      const res = await fetch(`/api/post-targets/${id}`, { method: 'DELETE' });
-      if (res.ok) await loadTargets();
-    } catch (err) {
-      console.error(err);
+      setDeletingMode(mode);
+      const url =
+        mode === 'permanent'
+          ? `/api/post-targets/${deleteTarget.id}?permanent=true`
+          : `/api/post-targets/${deleteTarget.id}`;
+      const res = await fetch(url, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to delete target');
+      }
+      const deletedId = deleteTarget.id;
+      setDeleteTarget(null);
+      setToast({
+        type: 'success',
+        message:
+          mode === 'permanent'
+            ? `Target #${deletedId.slice(-8)} permanently deleted.`
+            : `Target #${deletedId.slice(-8)} schedule canceled.`,
+      });
+      await loadTargets();
+    } catch (err: any) {
+      setToast({ type: 'error', message: err.message || 'Error deleting target.' });
+    } finally {
+      setDeletingMode(null);
     }
   }
 
@@ -132,6 +156,32 @@ export default function QueuePage() {
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
+
+      {/* Toast Alert */}
+      {toast && (
+        <div
+          className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 text-xs sm:text-sm ${
+            toast.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-rose-50 border-rose-200 text-rose-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+            )}
+            <span>{toast.message}</span>
+          </div>
+          <button
+            onClick={() => setToast(null)}
+            className="text-xs font-bold hover:underline cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Filter Tabs - scrollable on mobile */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto text-xs font-semibold">
@@ -268,15 +318,28 @@ export default function QueuePage() {
                         <span className="hidden sm:inline">Edit</span>
                       </Link>
 
-                      {/* Delete Page Link */}
-                      <Link
-                        href={`/queue/${target.id}/delete`}
-                        className="p-1.5 sm:px-2 sm:py-1 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                      {/* Delete Button (Opens Confirmation Modal) */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDeleteTarget({
+                            id: target.id,
+                            provider: target.socialAccount.provider,
+                            displayName: target.socialAccount.displayName,
+                            username: undefined,
+                            publishAtUtc: target.publishAtUtc,
+                            timezone: target.timezone,
+                            status: target.status,
+                            content,
+                            attemptCount: target.attemptCount,
+                          })
+                        }
+                        className="p-1.5 sm:px-2 sm:py-1 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
                         title="Delete or cancel target"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Delete</span>
-                      </Link>
+                      </button>
 
                       {target.status === 'scheduled' && (
                         <button
@@ -360,6 +423,15 @@ export default function QueuePage() {
           })}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        target={deleteTarget}
+        deletingMode={deletingMode}
+      />
     </div>
   );
 }
