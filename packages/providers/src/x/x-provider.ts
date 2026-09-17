@@ -26,7 +26,7 @@ export class XProvider implements SocialProvider {
   constructor(config?: XConfig) {
     this.clientId = config?.clientId || process.env.X_CLIENT_ID || '';
     this.clientSecret = config?.clientSecret || process.env.X_CLIENT_SECRET || '';
-    this.redirectUri = config?.redirectUri || process.env.X_REDIRECT_URI || '';
+    this.redirectUri = config?.redirectUri || process.env.X_REDIRECT_URI || 'http://localhost:3000/api/auth/x/callback';
   }
 
   public async validatePost(input: ProviderPostInput): Promise<ValidationResult> {
@@ -133,8 +133,14 @@ export class XProvider implements SocialProvider {
   }
 
   public getAuthorizationUrl(options: OAuthAuthorizationUrlOptions): string {
-    const scopes = options.scopes || ['tweet.read', 'tweet.write', 'users.read', 'offline.access'];
-    const redirectUri = options.redirectUri || this.redirectUri;
+    const envScopes = process.env.X_SCOPES
+      ? process.env.X_SCOPES.split(',').map((s) => s.trim()).filter(Boolean)
+      : undefined;
+    const defaultScopes = ['tweet.read', 'tweet.write', 'users.read', 'offline.access'];
+    const scopes = options.scopes && options.scopes.length > 0
+      ? options.scopes
+      : (envScopes && envScopes.length > 0 ? envScopes : defaultScopes);
+    const redirectUri = options.redirectUri || this.redirectUri || 'http://localhost:3000/api/auth/x/callback';
 
     const params = new URLSearchParams({
       response_type: 'code',
@@ -152,7 +158,7 @@ export class XProvider implements SocialProvider {
   public async exchangeCodeForToken(
     options: OAuthTokenExchangeOptions
   ): Promise<OAuthTokenResult> {
-    const redirectUri = options.redirectUri || this.redirectUri;
+    const redirectUri = options.redirectUri || this.redirectUri || 'http://localhost:3000/api/auth/x/callback';
 
     const params = new URLSearchParams({
       code: options.code,

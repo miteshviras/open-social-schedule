@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { prisma } from '@open-social/database';
@@ -58,6 +59,25 @@ export async function buildApp() {
     return reply.send({ success: true });
   });
 
+  // -------------------------------------------------------------
+  // In-Memory OAuth PKCE Session Store (for X / Twitter & PKCE providers)
+  // -------------------------------------------------------------
+  interface OAuthSession {
+    provider: string;
+    codeVerifier?: string;
+    createdAt: number;
+  }
+  const oauthSessions = new Map<string, OAuthSession>();
+
+  function cleanOldOAuthSessions() {
+    const cutoff = Date.now() - 15 * 60 * 1000;
+    for (const [state, session] of oauthSessions.entries()) {
+      if (session.createdAt < cutoff) {
+        oauthSessions.delete(state);
+      }
+    }
+  }
+
   // Get OAuth initiation URL
   fastify.get('/api/auth/:provider/url', async (request, reply) => {
     const { provider } = request.params as { provider: string };
@@ -71,13 +91,31 @@ export async function buildApp() {
     const customScopes = query.scopes
       ? query.scopes.split(',').map((s) => s.trim()).filter(Boolean)
       : undefined;
+
+    let codeVerifier: string | undefined;
+    let codeChallenge: string | undefined;
+
+    // Generate PKCE code_verifier and S256 code_challenge for X (Twitter)
+    if (provider === 'x') {
+      codeVerifier = crypto.randomBytes(32).toString('base64url');
+      codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+    }
+
+    cleanOldOAuthSessions();
+    oauthSessions.set(state, {
+      provider,
+      codeVerifier,
+      createdAt: Date.now(),
+    });
+
     const url = instance.getAuthorizationUrl({
       state,
       scopes: customScopes,
       redirectUri: query.redirectUri,
+      codeChallenge,
     });
 
-    return reply.send({ url, state, provider });
+    return reply.send({ url, state, provider, codeChallenge: !!codeChallenge });
   });
 
   // Handle OAuth callback
@@ -95,7 +133,15 @@ export async function buildApp() {
 
     try {
       const instance = ProviderRegistry.get(provider);
-      const tokenResult = await instance.exchangeCodeForToken({ code: query.code });
+      const session = query.state ? oauthSessions.get(query.state) : undefined;
+      if (query.state) {
+        oauthSessions.delete(query.state);
+      }
+
+      const tokenResult = await instance.exchangeCodeForToken({
+        code: query.code,
+        codeVerifier: session?.codeVerifier,
+      });
 
       // Connect and encrypt tokens at rest
       await AccountService.connectAccount({

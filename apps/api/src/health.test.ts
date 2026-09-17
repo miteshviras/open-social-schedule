@@ -46,4 +46,25 @@ describe('API Server & Health Checks', () => {
     assert.equal(response.statusCode, 400);
     await app.close();
   });
+
+  it('GET /api/auth/x/url should return valid OAuth 2.0 PKCE URL with challenge and default scopes', async () => {
+    const app = await buildApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/auth/x/url',
+    });
+
+    assert.equal(response.statusCode, 200);
+    const body = JSON.parse(response.payload);
+    assert.equal(body.provider, 'x');
+    assert.equal(body.codeChallenge, true);
+    assert.ok(body.url.startsWith('https://twitter.com/i/oauth2/authorize'));
+    assert.ok(body.url.includes('code_challenge_method=S256'));
+    assert.ok(body.url.includes('code_challenge='));
+    assert.ok(body.url.includes('tweet.read'));
+    assert.ok(body.url.includes('tweet.write'));
+    assert.ok(body.url.includes('users.read'));
+    assert.ok(body.url.includes('offline.access'));
+    await app.close();
+  });
 });

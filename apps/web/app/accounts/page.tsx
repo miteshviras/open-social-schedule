@@ -15,6 +15,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { LinkedInSetupGuideModal } from '../../components/LinkedInSetupGuideModal';
+import { XSetupGuideModal } from '../../components/XSetupGuideModal';
 
 interface SocialAccount {
   id: string;
@@ -32,6 +33,7 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [showLinkedInGuide, setShowLinkedInGuide] = useState(false);
+  const [showXGuide, setShowXGuide] = useState(false);
 
   async function loadAccounts() {
     try {
@@ -55,7 +57,12 @@ export default function AccountsPage() {
   async function startOAuth(provider: string) {
     try {
       setConnecting(provider);
-      const query = provider === 'linkedin' ? '?scopes=openid,profile,w_member_social' : '';
+      const query =
+        provider === 'linkedin'
+          ? '?scopes=openid,profile,w_member_social'
+          : provider === 'x'
+          ? '?scopes=tweet.read,tweet.write,users.read,offline.access'
+          : '';
       const res = await fetch(`/api/auth/${provider}/url${query}`);
       if (res.ok) {
         const data = await res.json();
@@ -125,13 +132,22 @@ export default function AccountsPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowLinkedInGuide(true)}
-          className="px-3.5 py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition cursor-pointer self-start sm:self-auto"
-        >
-          <BookOpen className="w-3.5 h-3.5 text-[#0077B5]" />
-          LinkedIn Setup Guide
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <button
+            onClick={() => setShowLinkedInGuide(true)}
+            className="px-3.5 py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-[#0077B5]" />
+            LinkedIn Setup Guide
+          </button>
+          <button
+            onClick={() => setShowXGuide(true)}
+            className="px-3.5 py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-black" />
+            X (Twitter) Setup Guide
+          </button>
+        </div>
       </div>
 
       {/* Security Guarantee Banner */}
@@ -281,11 +297,11 @@ export default function AccountsPage() {
             )}
           </div>
 
-          <div>
+          <div className="space-y-2">
             {xAccount ? (
               <button
                 onClick={() => handleDisconnect(xAccount.id)}
-                className="w-full py-2 px-3 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                className="w-full py-2 px-3 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Disconnect Account
@@ -294,12 +310,21 @@ export default function AccountsPage() {
               <button
                 onClick={() => startOAuth('x')}
                 disabled={connecting === 'x'}
-                className="w-full py-2 px-3 bg-black hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                className="w-full py-2 px-3 bg-black hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 {connecting === 'x' ? 'Redirecting...' : 'Connect 𝕏'}
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => setShowXGuide(true)}
+              className="w-full py-1.5 px-3 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[11px] font-medium flex items-center justify-center gap-1.5 transition cursor-pointer"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
+              Setup Guide & Scopes Info
+            </button>
           </div>
         </div>
 
@@ -371,6 +396,12 @@ export default function AccountsPage() {
       <LinkedInSetupGuideModal
         isOpen={showLinkedInGuide}
         onClose={() => setShowLinkedInGuide(false)}
+      />
+
+      {/* X (Twitter) Setup Guide Modal */}
+      <XSetupGuideModal
+        isOpen={showXGuide}
+        onClose={() => setShowXGuide(false)}
       />
     </div>
   );
