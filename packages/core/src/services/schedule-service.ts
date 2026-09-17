@@ -4,6 +4,8 @@ import {
   BulkScheduleRow,
   BulkSchedulePreviewResult,
   BulkSchedulePreviewItem,
+  BulkScheduleTargetPreview,
+  BulkCommitItem,
   TargetStatus,
 } from '../types/index.js';
 import { StateTransitionService } from '../state/state-machine.js';
@@ -13,10 +15,16 @@ import {
   utcToLocalDisplay,
 } from '../scheduling/time.js';
 
+const PROVIDER_CHAR_LIMITS: Record<string, number> = {
+  linkedin: 3000,
+  x: 280,
+  mock: 5000,
+};
+
 export class ScheduleService {
   /**
    * Previews a bulk schedule before committing it to the database.
-   * Generates display times in the user's timezone and flags row errors.
+   * Generates display times in the user's timezone and flags platform-specific row errors.
    */
   public static async bulkSchedulePreview(
     rows: BulkScheduleRow[],
@@ -31,43 +39,108 @@ export class ScheduleService {
     let validCount = 0;
     let invalidCount = 0;
 
-    // Verify accounts exist
-    const accountIds = Array.from(new Set(rows.map((r) => r.socialAccountId)));
+    // Collect all referenced accounts
+    const accountIds = Array.from(
+      new Set(
+        rows.flatMap((r) => {
+          const ids: string[] = [];
+          if (r.socialAccountId) ids.push(r.socialAccountId);
+          if (r.socialAccountIds) ids.push(...r.socialAccountIds);
+          if (r.targets) ids.push(...r.targets.map((t) => t.socialAccountId));
+          return ids;
+        })
+      )
+    );
+
     const existingAccounts = await prisma.socialAccount.findMany({
       where: { id: { in: accountIds } },
-      select: { id: true, status: true },
+      select: { id: true, provider: true, displayName: true, status: true },
     });
-    const validAccountMap = new Map(existingAccounts.map((a) => [a.id, a.status]));
+    const accountMap = new Map(existingAccounts.map((a) => [a.id, a]));
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const publishAtUtc = row.customPublishAtUtc || slots[i];
-      let isValid = true;
-      let validationError: string | undefined;
 
-      if (!row.content || row.content.trim().length === 0) {
-        isValid = false;
-        validationError = 'Post content cannot be empty.';
-      } else if (!validAccountMap.has(row.socialAccountId)) {
-        isValid = false;
-        validationError = 'Selected social account does not exist.';
-      } else if (validAccountMap.get(row.socialAccountId) !== 'active') {
-        isValid = false;
-        validationError = 'Selected social account is inactive or revoked.';
+      // Determine targets for this row
+      const targetConfigs: Array<{ socialAccountId: string; contentOverride?: string }> = [];
+      if (row.targets && row.targets.length > 0) {
+        for (const t of row.targets) {
+          targetConfigs.push({ socialAccountId: t.socialAccountId, contentOverride: t.contentOverride });
+        }
+      } else if (row.socialAccountIds && row.socialAccountIds.length > 0) {
+        for (const accId of row.socialAccountIds) {
+          targetConfigs.push({ socialAccountId: accId, contentOverride: row.contentOverride });
+        }
+      } else if (row.socialAccountId) {
+        targetConfigs.push({ socialAccountId: row.socialAccountId, contentOverride: row.contentOverride });
       }
 
-      if (isValid) validCount++;
+      const targetPreviews: BulkScheduleTargetPreview[] = [];
+      let isRowValid = true;
+      let primaryValidationError: string | undefined;
+
+      if (!row.content || row.content.trim().length === 0) {
+        isRowValid = false;
+        primaryValidationError = 'Post content cannot be empty.';
+      } else if (targetConfigs.length === 0) {
+        isRowValid = false;
+        primaryValidationError = 'At least one social account target is required.';
+      }
+
+      for (const tgt of targetConfigs) {
+        const acc = accountMap.get(tgt.socialAccountId);
+        const effectiveContent = tgt.contentOverride || row.content;
+        const charCount = effectiveContent.length;
+        const provider = acc?.provider || 'generic';
+        const charLimit = PROVIDER_CHAR_LIMITS[provider] || 3000;
+        let isTargetValid = isRowValid;
+        let targetError: string | undefined;
+
+        if (!acc) {
+          isTargetValid = false;
+          targetError = 'Selected social account does not exist.';
+        } else if (acc.status !== 'active') {
+          isTargetValid = false;
+          targetError = 'Selected social account is inactive or revoked.';
+        } else if (charCount > charLimit) {
+          isTargetValid = false;
+          targetError = `Content exceeds ${acc.provider.toUpperCase()} limit of ${charLimit} characters (${charCount} chars).`;
+        }
+
+        if (!isTargetValid && !primaryValidationError) {
+          primaryValidationError = targetError;
+        }
+        if (!isTargetValid) {
+          isRowValid = false;
+        }
+
+        targetPreviews.push({
+          socialAccountId: tgt.socialAccountId,
+          provider,
+          displayName: acc?.displayName || 'Unknown',
+          content: effectiveContent,
+          charCount,
+          charLimit,
+          isValid: isTargetValid,
+          validationError: targetError,
+        });
+      }
+
+      if (isRowValid) validCount++;
       else invalidCount++;
 
       items.push({
         rowIndex: i + 1,
         content: row.content,
-        socialAccountId: row.socialAccountId,
+        socialAccountId: targetConfigs[0]?.socialAccountId || row.socialAccountId || '',
         publishAtUtc,
         publishAtLocalDisplay: utcToLocalDisplay(publishAtUtc, cadence.timezone),
         timezone: cadence.timezone,
-        isValid,
-        validationError,
+        isValid: isRowValid,
+        validationError: primaryValidationError,
+        targets: targetPreviews,
+        isAllValid: isRowValid,
       });
     }
 
@@ -80,17 +153,11 @@ export class ScheduleService {
   }
 
   /**
-   * Commits a previewed bulk schedule transactionally.
+   * Commits a previewed bulk schedule transactionally (supports single and multi-platform targets).
    */
   public static async bulkScheduleCommit(
     userId: string,
-    items: Array<{
-      content: string;
-      contentOverride?: string;
-      socialAccountId: string;
-      publishAtUtc: Date;
-      timezone: string;
-    }>
+    items: BulkCommitItem[] | any[]
   ) {
     return await prisma.$transaction(async (tx) => {
       await tx.user.upsert({
@@ -110,19 +177,35 @@ export class ScheduleService {
           },
         });
 
-        // Create target
-        const target = await tx.postTarget.create({
-          data: {
-            postId: post.id,
-            socialAccountId: item.socialAccountId,
-            contentOverride: item.contentOverride,
-            publishAtUtc: item.publishAtUtc,
-            timezone: item.timezone,
-            status: 'scheduled',
-          },
-        });
-
-        createdTargets.push(target);
+        // If multi-target array is present, schedule to all targets
+        if (item.targets && Array.isArray(item.targets) && item.targets.length > 0) {
+          for (const tgt of item.targets) {
+            const target = await tx.postTarget.create({
+              data: {
+                postId: post.id,
+                socialAccountId: tgt.socialAccountId,
+                contentOverride: tgt.contentOverride,
+                publishAtUtc: tgt.publishAtUtc ? new Date(tgt.publishAtUtc) : new Date(item.publishAtUtc),
+                timezone: tgt.timezone || item.timezone,
+                status: 'scheduled',
+              },
+            });
+            createdTargets.push(target);
+          }
+        } else if (item.socialAccountId) {
+          // Legacy single-account support
+          const target = await tx.postTarget.create({
+            data: {
+              postId: post.id,
+              socialAccountId: item.socialAccountId,
+              contentOverride: item.contentOverride,
+              publishAtUtc: new Date(item.publishAtUtc),
+              timezone: item.timezone,
+              status: 'scheduled',
+            },
+          });
+          createdTargets.push(target);
+        }
       }
 
       return createdTargets;

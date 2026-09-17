@@ -75,4 +75,22 @@ describe('Scheduling & Timezone Calculations', () => {
     const next4 = calculateNextRetryAttempt(4, 1000, 10000);
     assert.ok(next4.getTime() >= now + 8000);
   });
+
+  it('should generate multi-day and daily cadence slots accurately', () => {
+    const start = new Date('2026-10-01T12:00:00Z');
+    const dailySlots = generateScheduleSlots(
+      {
+        startDateUtc: start,
+        timezone: 'UTC',
+        intervalMinutes: 1440, // 24 hours
+      },
+      3
+    );
+
+    assert.equal(dailySlots.length, 3);
+    assert.equal(dailySlots[0].toISOString(), '2026-10-01T12:00:00.000Z');
+    assert.equal(dailySlots[1].toISOString(), '2026-10-02T12:00:00.000Z');
+    assert.equal(dailySlots[2].toISOString(), '2026-10-03T12:00:00.000Z');
+  });
 });
+

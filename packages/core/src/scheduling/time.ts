@@ -50,11 +50,12 @@ export function generateScheduleSlots(
     throw new Error(`Invalid timezone: ${timezone}`);
   }
 
+  const startInstant = new Date(startDateUtc);
   const slots: Date[] = [];
 
   // Scenario 1: Specific posting times per day (e.g. ["09:00", "15:00"])
   if (postingTimes && postingTimes.length > 0) {
-    let currentDayZoned = toZonedTime(startDateUtc, timezone);
+    let currentDayZoned = toZonedTime(startInstant, timezone);
     const validDays = daysOfWeek && daysOfWeek.length > 0 ? daysOfWeek : [0, 1, 2, 3, 4, 5, 6];
 
     while (slots.length < count) {
@@ -68,7 +69,7 @@ export function generateScheduleSlots(
 
           const candidateUtc = fromZonedTime(candidateZoned, timezone);
           // Only add if after or equal to the start instant
-          if (!isBefore(candidateUtc, startDateUtc)) {
+          if (!isBefore(candidateUtc, startInstant)) {
             slots.push(candidateUtc);
           }
         }
@@ -80,7 +81,7 @@ export function generateScheduleSlots(
 
   // Scenario 2: Interval in minutes (default 60 mins if unspecified)
   const stepMinutes = intervalMinutes && intervalMinutes > 0 ? intervalMinutes : 60;
-  let currentUtc = new Date(startDateUtc.getTime());
+  let currentUtc = new Date(startInstant.getTime());
 
   for (let i = 0; i < count; i++) {
     slots.push(new Date(currentUtc.getTime()));

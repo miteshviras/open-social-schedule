@@ -512,6 +512,113 @@ export async function generateAIPostContent(input: {
   };
 }
 
+export async function generateAIBulkPosts(input: {
+  topic: string;
+  count: number;
+  tone?: string;
+  platforms?: ('linkedin' | 'x')[];
+}) {
+  const count = Math.min(Math.max(input.count || 5, 1), 20);
+  const tone = input.tone || 'professional';
+  const platforms = input.platforms || ['linkedin', 'x'];
+  const topic = input.topic || 'Social Media Growth Strategy';
+
+  // Check Gemini live if API key is present
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey) {
+    try {
+      const systemInstruction = `You are an elite social media content strategist.
+Generate exactly ${count} distinct, high-impact social media posts around the overarching theme: "${topic}".
+Tone: ${tone}.
+Target platforms: ${platforms.join(', ')}.
+
+Return strictly valid JSON with this schema:
+{
+  "posts": [
+    {
+      "topic": "Specific sub-theme or angle for this post",
+      "canonicalContent": "Main post text",
+      "linkedin": "Full-length LinkedIn post with opening hook, structured paragraphs, bullet takeaways, call to action, and 3-5 hashtags (up to 3000 chars)",
+      "x": "Punchy concise tweet strictly under 280 characters with relevant hashtags",
+      "suggestedHashtags": ["#Tag1", "#Tag2"]
+    }
+  ]
+}`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: systemInstruction }] }],
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.75 },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const json = await response.json();
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed.posts) && parsed.posts.length > 0) {
+            return parsed.posts.slice(0, count).map((p: any, idx: number) => {
+              let xText = p.x || p.canonicalContent || '';
+              if (xText.length > 278) xText = xText.slice(0, 275) + '...';
+              return {
+                id: `post_${idx + 1}`,
+                title: p.topic || `Post ${idx + 1}`,
+                canonicalContent: p.canonicalContent || p.linkedin || '',
+                linkedin: p.linkedin || p.canonicalContent || '',
+                x: xText,
+                hashtags: p.suggestedHashtags || [],
+              };
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Gemini bulk generation fallback to semantic local generator:', err);
+    }
+  }
+
+  // Fallback: Local Semantic Multi-Post Generator
+  const angles = [
+    { prefix: 'Core Principle', takeaway: 'Foundational mental model and key rationale' },
+    { prefix: 'Costly Pitfall', takeaway: 'Common misconception and how to avoid it' },
+    { prefix: 'Actionable Workflow', takeaway: '3-step practical execution framework' },
+    { prefix: 'Counter-Intuitive Insight', takeaway: 'Why the conventional wisdom fails' },
+    { prefix: 'Essential Checklist', takeaway: 'Summary checklist and final takeaways' },
+    { prefix: 'Future Outlook', takeaway: 'Emerging trends and what is next' },
+    { prefix: 'Tooling & Leverage', takeaway: 'How to automate and accelerate execution' },
+  ];
+
+  const results = [];
+  for (let i = 0; i < count; i++) {
+    const angle = angles[i % angles.length];
+    const subTopic = `${topic} — ${angle.prefix}`;
+    const single = await generateAIPostContent({
+      topic: subTopic,
+      tone,
+      platforms,
+      keyPoints: [angle.takeaway],
+    });
+
+    results.push({
+      id: `post_${i + 1}`,
+      title: `${angle.prefix}: ${topic.slice(0, 45)}`,
+      canonicalContent: single.canonicalContent,
+      linkedin: single.variations.linkedin,
+      x: single.variations.x,
+      hashtags: single.suggestedHashtags,
+    });
+  }
+
+  return results;
+}
+
+
 export function generateClientConfig(client: string, basePath?: string) {
   const rootDir = basePath || process.cwd();
   const scriptPath = `${rootDir.replace(/\\/g, '/')}/packages/mcp/dist/index.js`;
@@ -1035,16 +1142,28 @@ export function createMcpServer(): McpServer {
     'social_schedule_bulk',
     'Bulk import and schedule multiple posts across intervals with automated cadence rules.',
     {
-      accountId: z.string().describe('Target social account ID'),
+      accountId: z.string().optional().describe('Target social account ID (optional if accountIds is provided)'),
+      accountIds: z.array(z.string()).optional().describe('Target social account IDs for multi-platform scheduling'),
       posts: z.array(z.string().min(1)).min(1).describe('List of post contents to schedule'),
       startDateUtc: z.string().describe('Starting time in ISO 8601 UTC format'),
       intervalMinutes: z.number().int().positive().default(120).describe('Minutes between each post (e.g. 60, 120)'),
       timezone: z.string().default('UTC').describe('User timezone identifier'),
     },
     async (args) => {
+      const selectedAccountIds = args.accountIds && args.accountIds.length > 0
+        ? args.accountIds
+        : args.accountId
+        ? [args.accountId]
+        : [];
+
+      if (selectedAccountIds.length === 0) {
+        throw new Error('At least one social account ID must be provided (accountId or accountIds).');
+      }
+
       const rows = args.posts.map((content) => ({
         content,
-        socialAccountId: args.accountId,
+        socialAccountId: selectedAccountIds[0],
+        socialAccountIds: selectedAccountIds,
       }));
 
       const cadence = {
@@ -1083,6 +1202,12 @@ export function createMcpServer(): McpServer {
           socialAccountId: i.socialAccountId,
           publishAtUtc: i.publishAtUtc,
           timezone: i.timezone,
+          targets: i.targets?.map((t) => ({
+            socialAccountId: t.socialAccountId,
+            contentOverride: t.content !== i.content ? t.content : undefined,
+            publishAtUtc: i.publishAtUtc,
+            timezone: i.timezone,
+          })),
         }))
       );
 

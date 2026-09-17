@@ -10,6 +10,7 @@ import { ProviderRegistry } from '@open-social/providers';
 import {
   MCP_TOOLS_CATALOG,
   generateAIPostContent,
+  generateAIBulkPosts,
   generateClientConfig,
 } from '@open-social/mcp';
 
@@ -243,6 +244,29 @@ export async function buildApp() {
       body.items
     );
     return reply.status(201).send(results);
+  });
+
+  fastify.post('/api/schedules/bulk-ai-generate', async (request, reply) => {
+    const body = request.body as {
+      topic: string;
+      count?: number;
+      tone?: string;
+      platforms?: ('linkedin' | 'x')[];
+    };
+    if (!body.topic || body.topic.trim().length === 0) {
+      return reply.status(400).send({ error: 'Topic is required for bulk generation' });
+    }
+    const posts = await generateAIBulkPosts({
+      topic: body.topic,
+      count: body.count || 5,
+      tone: body.tone || 'professional',
+      platforms: body.platforms || ['linkedin', 'x'],
+    });
+    return reply.send({
+      topic: body.topic,
+      count: posts.length,
+      posts,
+    });
   });
 
   // -------------------------------------------------------------

@@ -56,11 +56,30 @@ export interface BulkScheduleCadence {
   postingTimes?: string[]; // e.g. ["09:00", "14:00", "18:00"]
 }
 
+export interface BulkTargetOverride {
+  socialAccountId: string;
+  provider?: string;
+  contentOverride?: string;
+}
+
 export interface BulkScheduleRow {
   content: string;
   contentOverride?: string;
-  socialAccountId: string;
+  socialAccountId?: string;
+  socialAccountIds?: string[];
+  targets?: BulkTargetOverride[];
   customPublishAtUtc?: Date;
+}
+
+export interface BulkScheduleTargetPreview {
+  socialAccountId: string;
+  provider: string;
+  displayName: string;
+  content: string;
+  charCount: number;
+  charLimit: number;
+  isValid: boolean;
+  validationError?: string;
 }
 
 export interface BulkSchedulePreviewItem {
@@ -72,6 +91,8 @@ export interface BulkSchedulePreviewItem {
   timezone: string;
   isValid: boolean;
   validationError?: string;
+  targets?: BulkScheduleTargetPreview[];
+  isAllValid?: boolean;
 }
 
 export interface BulkSchedulePreviewResult {
@@ -80,3 +101,20 @@ export interface BulkSchedulePreviewResult {
   invalidCount: number;
   items: BulkSchedulePreviewItem[];
 }
+
+export interface BulkCommitTargetItem {
+  socialAccountId: string;
+  contentOverride?: string;
+  publishAtUtc?: Date;
+  timezone?: string;
+}
+
+export interface BulkCommitItem {
+  content: string;
+  contentOverride?: string;
+  socialAccountId?: string;
+  publishAtUtc: Date;
+  timezone: string;
+  targets?: BulkCommitTargetItem[];
+}
+
