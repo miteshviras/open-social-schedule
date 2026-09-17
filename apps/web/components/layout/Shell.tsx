@@ -89,7 +89,7 @@ export default function Shell({ children }: ShellProps) {
         <div>
           {/* Logo Brand */}
           <div className="p-5 border-b border-slate-100">
-            <Link href="/" className="hover:opacity-90 transition inline-block">
+            <Link href="/" prefetch={false} className="hover:opacity-90 transition inline-block">
               <Logo size={36} />
             </Link>
           </div>
@@ -103,6 +103,7 @@ export default function Shell({ children }: ShellProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     isActive
                       ? 'bg-blue-50 text-blue-600 font-semibold shadow-xs'
@@ -171,7 +172,7 @@ export default function Shell({ children }: ShellProps) {
         <div>
           {/* Drawer Header */}
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <Link href="/" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
               <Logo size={32} />
             </Link>
             <button
@@ -192,6 +193,7 @@ export default function Shell({ children }: ShellProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all ${
                     isActive
@@ -256,7 +258,7 @@ export default function Shell({ children }: ShellProps) {
               <Menu className="w-5 h-5" />
             </button>
 
-            <Link href="/" className="md:hidden flex items-center gap-2">
+            <Link href="/" prefetch={false} className="md:hidden flex items-center gap-2">
               <Logo variant="mark" size={28} />
               <span className="font-bold text-sm tracking-tight text-slate-900">Open Social</span>
             </Link>
@@ -292,6 +294,7 @@ export default function Shell({ children }: ShellProps) {
 
             <Link
               href="/compose"
+              prefetch={false}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
             >
               <PenSquare className="w-3.5 h-3.5" />
@@ -321,6 +324,7 @@ export default function Shell({ children }: ShellProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className="flex flex-col items-center justify-center -mt-4 group"
               >
                 <div className="w-11 h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md shadow-blue-500/30 group-active:scale-95 transition">
@@ -335,6 +339,7 @@ export default function Shell({ children }: ShellProps) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition ${
                 isActive ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
               }`}

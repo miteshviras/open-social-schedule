@@ -523,7 +523,7 @@ export default function McpHubPage() {
                     {accounts.length === 0 ? (
                       <span className="text-xs text-slate-500">
                         No accounts connected.{' '}
-                        <Link href="/accounts" className="text-blue-600 font-semibold underline">
+                        <Link href="/accounts" prefetch={false} className="text-blue-600 font-semibold underline">
                           Connect an account
                         </Link>
                       </span>
@@ -624,7 +624,7 @@ export default function McpHubPage() {
                       Post ID: {scheduleSuccess.post.id} ({scheduleSuccess.post.targets?.length || 1} target channels)
                     </p>
                     <div className="pt-1">
-                      <Link href="/queue" className="font-semibold text-emerald-800 underline hover:text-emerald-950">
+                      <Link href="/queue" prefetch={false} className="font-semibold text-emerald-800 underline hover:text-emerald-950">
                         View scheduled item in Queue &rarr;
                       </Link>
                     </div>
