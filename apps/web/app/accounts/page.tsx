@@ -11,7 +11,10 @@ import {
   PlusCircle,
   RefreshCw,
   Sparkles,
+  BookOpen,
+  HelpCircle,
 } from 'lucide-react';
+import { LinkedInSetupGuideModal } from '../../components/LinkedInSetupGuideModal';
 
 interface SocialAccount {
   id: string;
@@ -28,6 +31,7 @@ export default function AccountsPage() {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [showLinkedInGuide, setShowLinkedInGuide] = useState(false);
 
   async function loadAccounts() {
     try {
@@ -51,7 +55,8 @@ export default function AccountsPage() {
   async function startOAuth(provider: string) {
     try {
       setConnecting(provider);
-      const res = await fetch(`/api/auth/${provider}/url`);
+      const query = provider === 'linkedin' ? '?scopes=openid,profile,w_member_social' : '';
+      const res = await fetch(`/api/auth/${provider}/url${query}`);
       if (res.ok) {
         const data = await res.json();
         // Redirect browser to OAuth authorization URL
@@ -112,11 +117,21 @@ export default function AccountsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Connected Social Accounts</h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Manage your LinkedIn, X, and local testing profiles. All credentials stay encrypted locally.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Connected Social Accounts</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Manage your LinkedIn, X, and local testing profiles. All credentials stay encrypted locally.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowLinkedInGuide(true)}
+          className="px-3.5 py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition cursor-pointer self-start sm:self-auto"
+        >
+          <BookOpen className="w-3.5 h-3.5 text-[#0077B5]" />
+          LinkedIn Setup Guide
+        </button>
       </div>
 
       {/* Security Guarantee Banner */}
@@ -184,11 +199,11 @@ export default function AccountsPage() {
             )}
           </div>
 
-          <div>
+          <div className="space-y-2">
             {linkedinAccount ? (
               <button
                 onClick={() => handleDisconnect(linkedinAccount.id)}
-                className="w-full py-2 px-3 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                className="w-full py-2 px-3 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Disconnect Account
@@ -197,12 +212,21 @@ export default function AccountsPage() {
               <button
                 onClick={() => startOAuth('linkedin')}
                 disabled={connecting === 'linkedin'}
-                className="w-full py-2 px-3 bg-[#0077B5] hover:bg-[#005c8d] text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                className="w-full py-2 px-3 bg-[#0077B5] hover:bg-[#005c8d] text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 {connecting === 'linkedin' ? 'Redirecting...' : 'Connect LinkedIn'}
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => setShowLinkedInGuide(true)}
+              className="w-full py-1.5 px-3 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[11px] font-medium flex items-center justify-center gap-1.5 transition cursor-pointer"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
+              Setup Guide & Scopes Info
+            </button>
           </div>
         </div>
 
@@ -342,6 +366,12 @@ export default function AccountsPage() {
           </div>
         </div>
       </div>
+
+      {/* LinkedIn Setup Guide Modal */}
+      <LinkedInSetupGuideModal
+        isOpen={showLinkedInGuide}
+        onClose={() => setShowLinkedInGuide(false)}
+      />
     </div>
   );
 }
