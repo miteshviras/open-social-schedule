@@ -96,7 +96,6 @@ export default function QueuePage() {
       return;
     }
     setExpandedId(id);
-    // Fetch attempt details if not present
     try {
       const res = await fetch(`/api/post-targets/${id}`);
       if (res.ok) {
@@ -111,7 +110,7 @@ export default function QueuePage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -130,7 +129,7 @@ export default function QueuePage() {
         </button>
       </div>
 
-      {/* Filter Tabs */}
+      {/* Filter Tabs - scrollable on mobile */}
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto text-xs font-semibold">
         {[
           { id: 'all', label: 'All Targets' },
@@ -143,7 +142,7 @@ export default function QueuePage() {
           <button
             key={tab.id}
             onClick={() => setFilter(tab.id)}
-            className={`px-3.5 py-1.5 rounded-lg transition ${
+            className={`px-3.5 py-1.5 rounded-lg transition whitespace-nowrap flex-shrink-0 ${
               filter === tab.id
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -156,7 +155,7 @@ export default function QueuePage() {
 
       {/* Target Items List */}
       {targets.length === 0 ? (
-        <div className="bg-white p-12 text-center rounded-xl border border-slate-200 space-y-2">
+        <div className="bg-white p-10 sm:p-12 text-center rounded-xl border border-slate-200 space-y-2">
           <Clock className="w-8 h-8 text-slate-300 mx-auto" />
           <p className="text-sm font-semibold text-slate-700">No post targets in this view</p>
           <p className="text-xs text-slate-400">
@@ -172,14 +171,14 @@ export default function QueuePage() {
             return (
               <div
                 key={target.id}
-                className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4 hover:border-slate-300 transition"
+                className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4 hover:border-slate-300 transition"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   {/* Left: Provider & Content */}
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-2.5">
+                  <div className="space-y-2 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold text-white ${
+                        className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${
                           target.socialAccount.provider === 'linkedin'
                             ? 'bg-[#0077B5]'
                             : target.socialAccount.provider === 'x'
@@ -203,13 +202,13 @@ export default function QueuePage() {
                       )}
                     </div>
 
-                    <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap line-clamp-3">
+                    <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words line-clamp-3">
                       {content}
                     </p>
 
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-slate-400 pt-1">
                       <span className="flex items-center gap-1 font-medium text-slate-500">
-                        <Calendar className="w-3.5 h-3.5" />
+                        <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
                         Due: {new Date(target.publishAtUtc).toLocaleString()} ({target.timezone})
                       </span>
                       {target.attemptCount > 0 && (
@@ -218,8 +217,8 @@ export default function QueuePage() {
                     </div>
                   </div>
 
-                  {/* Right: Status & Action Buttons */}
-                  <div className="flex flex-col sm:items-end gap-2.5 flex-shrink-0">
+                  {/* Right (Desktop) / Bottom Row (Mobile): Status & Action Buttons */}
+                  <div className="flex flex-row sm:flex-col sm:items-end justify-between items-center gap-2.5 flex-shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                     <span
                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
                         target.status === 'published'
@@ -238,20 +237,20 @@ export default function QueuePage() {
                       {target.status.toUpperCase()}
                     </span>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                       {target.status === 'scheduled' && (
                         <>
                           <button
                             onClick={() => handlePublishNow(target.id)}
-                            className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                            className="px-2.5 sm:px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
                             title="Publish immediately"
                           >
                             <Send className="w-3 h-3" />
-                            Publish Now
+                            <span className="hidden xs:inline">Publish</span> Now
                           </button>
                           <button
                             onClick={() => handleCancel(target.id)}
-                            className="px-3 py-1.5 bg-slate-50 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold transition"
+                            className="px-2.5 sm:px-3 py-1.5 bg-slate-50 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold transition"
                           >
                             Cancel
                           </button>
@@ -281,7 +280,7 @@ export default function QueuePage() {
 
                 {/* Audit Attempt Logs Accordion */}
                 {isExpanded && (
-                  <div className="pt-3 border-t border-slate-100 space-y-3 bg-slate-50/50 p-4 rounded-lg">
+                  <div className="pt-3 border-t border-slate-100 space-y-3 bg-slate-50/70 p-3 sm:p-4 rounded-lg">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
                       <History className="w-3.5 h-3.5 text-slate-500" />
                       Publish Execution History
@@ -314,7 +313,7 @@ export default function QueuePage() {
                               Started: {new Date(att.startedAt).toLocaleString()}
                             </p>
                             {att.errorMessageSafe && (
-                              <p className="text-rose-600 bg-rose-50 p-2 rounded border border-rose-100 font-mono text-[11px]">
+                              <p className="text-rose-600 bg-rose-50 p-2 rounded border border-rose-100 font-mono text-[11px] break-words">
                                 {att.errorMessageSafe}
                               </p>
                             )}

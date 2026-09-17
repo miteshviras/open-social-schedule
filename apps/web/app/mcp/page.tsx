@@ -269,13 +269,13 @@ export default function McpHubPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn">
       {/* Top Banner & Status */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-8 rounded-2xl shadow-md relative overflow-hidden border border-slate-800">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 sm:p-8 rounded-2xl shadow-md relative overflow-hidden border border-slate-800">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                <Bot className="w-5 h-5" />
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="p-1.5 sm:p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                <Bot className="w-4 sm:w-5 h-4 sm:h-5" />
               </span>
               <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
                 Model Context Protocol (MCP) Surface
@@ -285,7 +285,7 @@ export default function McpHubPage() {
                 Active & Listening
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-white">
               MCP AI Connectors & Content Studio
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
@@ -293,27 +293,27 @@ export default function McpHubPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap sm:flex-nowrap gap-3">
-            <div className="bg-white/5 backdrop-blur border border-white/10 px-4 py-3 rounded-xl text-center min-w-[90px]">
-              <div className="text-lg font-bold text-white font-mono">{tools.length || 23}</div>
-              <div className="text-[11px] text-slate-400 font-medium">Tools Available</div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full md:w-auto">
+            <div className="bg-white/5 backdrop-blur border border-white/10 px-2.5 py-2 sm:px-4 sm:py-3 rounded-xl text-center">
+              <div className="text-base sm:text-lg font-bold text-white font-mono">{tools.length || 23}</div>
+              <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium">Tools</div>
             </div>
-            <div className="bg-white/5 backdrop-blur border border-white/10 px-4 py-3 rounded-xl text-center min-w-[90px]">
-              <div className="text-lg font-bold text-white font-mono">{accounts.length}</div>
-              <div className="text-[11px] text-slate-400 font-medium">Connected Channels</div>
+            <div className="bg-white/5 backdrop-blur border border-white/10 px-2.5 py-2 sm:px-4 sm:py-3 rounded-xl text-center">
+              <div className="text-base sm:text-lg font-bold text-white font-mono">{accounts.length}</div>
+              <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium">Channels</div>
             </div>
-            <div className="bg-white/5 backdrop-blur border border-white/10 px-4 py-3 rounded-xl text-center min-w-[90px]">
-              <div className="text-lg font-bold text-emerald-400 font-mono">
+            <div className="bg-white/5 backdrop-blur border border-white/10 px-2.5 py-2 sm:px-4 sm:py-3 rounded-xl text-center">
+              <div className="text-base sm:text-lg font-bold text-emerald-400 font-mono">
                 {status?.queue?.scheduled ?? 0}
               </div>
-              <div className="text-[11px] text-slate-400 font-medium">Scheduled in Queue</div>
+              <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium">In Queue</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex border-b border-slate-200 gap-2 overflow-x-auto">
+      <div className="flex border-b border-slate-200 gap-1 sm:gap-2 overflow-x-auto pb-1">
         {[
           { id: 'ai-generator', label: 'AI Generator & Review', icon: Sparkles },
           { id: 'connectors', label: 'Client Connectors Setup', icon: Cpu },
@@ -326,7 +326,7 @@ export default function McpHubPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-5 py-3 text-xs font-semibold rounded-t-xl transition border-b-2 whitespace-nowrap ${
+              className={`flex items-center gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 text-xs font-semibold rounded-t-xl transition border-b-2 whitespace-nowrap flex-shrink-0 ${
                 isActive
                   ? 'border-blue-600 text-blue-600 bg-white shadow-xs'
                   : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -546,8 +546,8 @@ export default function McpHubPage() {
                 </div>
 
                 {/* Timing */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-slate-200">
-                  <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-slate-200">
+                  <div className="flex flex-col xs:flex-row items-start xs:items-center gap-3 sm:gap-4">
                     <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
                       <input
                         type="checkbox"
@@ -576,7 +576,7 @@ export default function McpHubPage() {
                     type="button"
                     onClick={handleScheduleAgreedPost}
                     disabled={scheduling || selectedAccountIds.length === 0 || (!editedLinkedin.trim() && !editedX.trim())}
-                    className="px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 text-white shadow-xs flex items-center gap-2 transition"
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 text-white shadow-xs flex items-center justify-center gap-2 transition"
                   >
                     {scheduling ? (
                       <>
@@ -624,7 +624,7 @@ export default function McpHubPage() {
       {/* TAB 2: Connectors Setup */}
       {activeTab === 'connectors' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {CLIENT_OPTIONS.map((c) => (
               <button
                 type="button"

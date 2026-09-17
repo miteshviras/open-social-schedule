@@ -114,7 +114,7 @@ export default function ComposePage() {
       updatedOverrides[xAcc.id] = aiDrafts.variations.x;
     }
     setOverrides(updatedOverrides);
-    setAiNotice('Draft content applied to editor! Review below and click "Schedule Post" when ready.');
+    setAiNotice('Draft content applied to editor! Review below and click "Confirm Schedule" when ready.');
     setShowAiAssistant(false);
     setTimeout(() => setAiNotice(null), 8000);
   }
@@ -205,7 +205,7 @@ export default function ComposePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -218,7 +218,7 @@ export default function ComposePage() {
         <button
           type="button"
           onClick={() => setShowAiAssistant((prev) => !prev)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xs hover:from-indigo-700 hover:to-blue-700 transition"
+          className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xs hover:from-indigo-700 hover:to-blue-700 transition"
         >
           <Sparkles className="w-4 h-4 text-indigo-200" />
           {showAiAssistant ? 'Hide AI Assistant' : 'Generate with AI'}
@@ -234,10 +234,10 @@ export default function ComposePage() {
 
       {/* AI Assistant Drawer / Panel */}
       {showAiAssistant && (
-        <div className="bg-gradient-to-b from-indigo-50/60 to-white p-6 rounded-2xl border border-indigo-200 shadow-sm space-y-5 animate-fadeIn">
+        <div className="bg-gradient-to-b from-indigo-50/60 to-white p-4 sm:p-6 rounded-2xl border border-indigo-200 shadow-sm space-y-5 animate-fadeIn">
           <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-indigo-600 text-white">
+            <div className="flex items-center gap-2.5">
+              <span className="p-1.5 rounded-lg bg-indigo-600 text-white flex-shrink-0">
                 <Sparkles className="w-4 h-4" />
               </span>
               <div>
@@ -284,7 +284,7 @@ export default function ComposePage() {
 
           {/* Tone Selector & Action */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold text-slate-600">Tone:</span>
               <div className="flex flex-wrap gap-1.5">
                 {(['thought-leadership', 'professional', 'punchy', 'casual', 'educational'] as const).map((t) => (
@@ -346,7 +346,7 @@ export default function ComposePage() {
                       {aiDrafts.characterCounts.linkedin} chars
                     </span>
                   </div>
-                  <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap break-words leading-relaxed max-h-48 overflow-y-auto bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                     {aiDrafts.variations.linkedin}
                   </p>
                 </div>
@@ -368,7 +368,7 @@ export default function ComposePage() {
                       {aiDrafts.characterCounts.x} / 280 chars
                     </span>
                   </div>
-                  <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap break-words leading-relaxed max-h-48 overflow-y-auto bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                     {aiDrafts.variations.x}
                   </p>
                 </div>
@@ -379,7 +379,7 @@ export default function ComposePage() {
                 <button
                   type="button"
                   onClick={applyAiDrafts}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xs flex items-center gap-2 transition"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xs flex items-center justify-center gap-2 transition"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   Agree & Apply to Composer
@@ -399,7 +399,7 @@ export default function ComposePage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Channel Selector */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 space-y-3 shadow-xs">
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 space-y-3 shadow-xs">
           <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
             Select Publishing Channels
           </label>
@@ -411,7 +411,7 @@ export default function ComposePage() {
               </a>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2.5 sm:gap-3">
               {accounts.map((acc) => {
                 const isSelected = selectedAccountIds.includes(acc.id);
                 return (
@@ -419,14 +419,14 @@ export default function ComposePage() {
                     type="button"
                     key={acc.id}
                     onClick={() => toggleAccount(acc.id)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 border transition ${
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border transition ${
                       isSelected
                         ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-xs'
                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
                     }`}
                   >
                     <span
-                      className={`w-5 h-5 rounded flex items-center justify-center text-[11px] font-bold text-white ${
+                      className={`w-5 h-5 rounded flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 ${
                         acc.provider === 'linkedin'
                           ? 'bg-[#0077B5]'
                           : acc.provider === 'x'
@@ -450,11 +450,11 @@ export default function ComposePage() {
         {/* Content Tabs (Canonical vs Platform Overrides) */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
           {/* Tabs bar */}
-          <div className="flex items-center border-b border-slate-200 bg-slate-50/70 px-4 pt-3 gap-2 overflow-x-auto">
+          <div className="flex items-center border-b border-slate-200 bg-slate-50/70 px-3 sm:px-4 pt-3 gap-2 overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveTab('canonical')}
-              className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg transition border-b-2 ${
+              className={`px-3 sm:px-4 py-2.5 text-xs font-semibold rounded-t-lg transition border-b-2 whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'canonical'
                   ? 'border-blue-600 text-blue-600 bg-white shadow-xs'
                   : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -468,7 +468,7 @@ export default function ComposePage() {
                 type="button"
                 key={acc.id}
                 onClick={() => setActiveTab(acc.id)}
-                className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg transition border-b-2 flex items-center gap-1.5 ${
+                className={`px-3 sm:px-4 py-2.5 text-xs font-semibold rounded-t-lg transition border-b-2 whitespace-nowrap flex-shrink-0 flex items-center gap-1.5 ${
                   activeTab === acc.id
                     ? 'border-blue-600 text-blue-600 bg-white shadow-xs'
                     : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -483,7 +483,7 @@ export default function ComposePage() {
           </div>
 
           {/* Tab Content */}
-          <div className="p-6 space-y-3">
+          <div className="p-4 sm:p-6 space-y-3">
             {activeTab === 'canonical' ? (
               <>
                 <textarea
@@ -491,10 +491,10 @@ export default function ComposePage() {
                   value={canonicalContent}
                   onChange={(e) => setCanonicalContent(e.target.value)}
                   placeholder="What's happening? Write your canonical social post here..."
-                  className="w-full p-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400"
+                  className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400"
                 />
 
-                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 pt-1 gap-2">
                   <span>Character count: {canonicalContent.length}</span>
                   {hasX && (
                     <span className={canonicalContent.length > 280 ? 'text-rose-600 font-bold' : ''}>
@@ -517,7 +517,7 @@ export default function ComposePage() {
                     setOverrides({ ...overrides, [activeTab]: e.target.value })
                   }
                   placeholder={`Optional override for ${accounts.find((a) => a.id === activeTab)?.displayName}...`}
-                  className="w-full p-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm leading-relaxed text-slate-900"
+                  className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm leading-relaxed text-slate-900"
                 />
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>Length: {(overrides[activeTab] || '').length}</span>
@@ -533,8 +533,8 @@ export default function ComposePage() {
         </div>
 
         {/* Scheduling Details */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 space-y-5 shadow-xs">
-          <div className="flex items-center justify-between">
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 space-y-5 shadow-xs">
+          <div className="flex flex-col xs:flex-row sm:items-center justify-between gap-2">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
               Timing & Schedule
             </label>
@@ -562,7 +562,7 @@ export default function ComposePage() {
                   type="datetime-local"
                   value={scheduleDate}
                   onChange={(e) => setScheduleDate(e.target.value)}
-                  className="w-full p-2.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full p-2.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
                 />
               </div>
 
@@ -588,11 +588,11 @@ export default function ComposePage() {
         </div>
 
         {/* Submit Actions */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2">
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-semibold transition"
+            className="px-4 py-2.5 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-semibold transition text-center"
           >
             Cancel
           </button>
@@ -600,7 +600,7 @@ export default function ComposePage() {
           <button
             type="submit"
             disabled={submitting || isXOverLimit}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 transition"
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition"
           >
             {isPublishNow ? <Send className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
             {submitting ? 'Saving...' : isPublishNow ? 'Publish Immediately' : 'Confirm Schedule'}

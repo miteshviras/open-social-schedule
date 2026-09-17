@@ -192,11 +192,11 @@ export default function DashboardOverview() {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-3 w-full md:w-auto">
             {nextUp && (
               <button
                 onClick={() => handlePublishNow(nextUp.id)}
-                className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition shadow-sm"
+                className="w-full sm:w-auto px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition shadow-sm"
               >
                 <Send className="w-3.5 h-3.5" />
                 Publish Immediately
@@ -204,7 +204,7 @@ export default function DashboardOverview() {
             )}
             <Link
               href="/queue"
-              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition"
+              className="w-full sm:w-auto px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition"
             >
               View Full Queue
               <ArrowRight className="w-3.5 h-3.5" />

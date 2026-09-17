@@ -7,6 +7,7 @@ import {
   Calendar as CalendarIcon,
   Clock,
   Sparkles,
+  MoveHorizontal,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -72,7 +73,7 @@ export default function CalendarPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -82,7 +83,7 @@ export default function CalendarPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-xs">
             <button
               onClick={prevMonth}
@@ -91,7 +92,7 @@ export default function CalendarPage() {
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-4 text-xs font-bold text-slate-800">
+            <span className="px-3 sm:px-4 text-xs font-bold text-slate-800 whitespace-nowrap">
               {monthNames[month]} {year}
             </span>
             <button
@@ -113,89 +114,97 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-        {/* Days of week header */}
-        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/70 text-center text-xs font-bold text-slate-600 py-3">
-          <span>Sun</span>
-          <span>Mon</span>
-          <span>Tue</span>
-          <span>Wed</span>
-          <span>Thu</span>
-          <span>Fri</span>
-          <span>Sat</span>
-        </div>
+      {/* Mobile Swipe Notice */}
+      <div className="flex items-center gap-1.5 text-xs text-slate-400 sm:hidden px-1">
+        <MoveHorizontal className="w-3.5 h-3.5 text-slate-400" />
+        <span>Swipe horizontally on the calendar to navigate days.</span>
+      </div>
 
-        {/* Date cells */}
-        <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-100 min-h-[500px]">
-          {days.map((date, idx) => {
-            if (!date) {
-              return <div key={`empty-${idx}`} className="bg-slate-50/30 min-h-[110px]" />;
-            }
+      {/* Calendar Grid with horizontal scroll wrap on small viewports */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-x-auto">
+        <div className="min-w-[650px]">
+          {/* Days of week header */}
+          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/70 text-center text-xs font-bold text-slate-600 py-3">
+            <span>Sun</span>
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
+          </div>
 
-            const dateStr = date.toISOString().split('T')[0];
-            const dayTargets = targets.filter((t) => t.publishAtUtc.startsWith(dateStr));
-            const isToday = new Date().toISOString().split('T')[0] === dateStr;
+          {/* Date cells */}
+          <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-100 min-h-[500px]">
+            {days.map((date, idx) => {
+              if (!date) {
+                return <div key={`empty-${idx}`} className="bg-slate-50/30 min-h-[110px]" />;
+              }
 
-            return (
-              <div
-                key={dateStr}
-                className={`p-2.5 min-h-[110px] flex flex-col justify-between transition hover:bg-slate-50/50 ${
-                  isToday ? 'bg-blue-50/20' : ''
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center ${
-                      isToday
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-700'
-                    }`}
-                  >
-                    {date.getDate()}
-                  </span>
-                  {dayTargets.length > 0 && (
-                    <span className="text-[10px] font-semibold text-slate-400">
-                      {dayTargets.length} post{dayTargets.length > 1 ? 's' : ''}
-                    </span>
-                  )}
-                </div>
+              const dateStr = date.toISOString().split('T')[0];
+              const dayTargets = targets.filter((t) => t.publishAtUtc.startsWith(dateStr));
+              const isToday = new Date().toISOString().split('T')[0] === dateStr;
 
-                <div className="space-y-1.5 mt-2 flex-1">
-                  {dayTargets.slice(0, 3).map((item) => (
-                    <Link
-                      key={item.id}
-                      href="/queue"
-                      className="block p-1.5 rounded-md text-[11px] bg-white border border-slate-200 hover:border-blue-400 shadow-xs transition group"
+              return (
+                <div
+                  key={dateStr}
+                  className={`p-2.5 min-h-[110px] flex flex-col justify-between transition hover:bg-slate-50/50 ${
+                    isToday ? 'bg-blue-50/20' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center ${
+                        isToday
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-700'
+                      }`}
                     >
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`w-3.5 h-3.5 rounded text-[8px] font-bold text-white flex items-center justify-center flex-shrink-0 ${
-                            item.socialAccount.provider === 'linkedin'
-                              ? 'bg-[#0077B5]'
-                              : item.socialAccount.provider === 'x'
-                              ? 'bg-black'
-                              : 'bg-indigo-600'
-                          }`}
-                        >
-                          {item.socialAccount.provider === 'linkedin' ? 'in' : item.socialAccount.provider === 'x' ? '𝕏' : 'M'}
-                        </span>
-                        <span className="text-slate-800 font-medium truncate group-hover:text-blue-600">
-                          {item.post.canonicalContent}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-
-                  {dayTargets.length > 3 && (
-                    <span className="text-[10px] font-semibold text-slate-500 block text-center">
-                      +{dayTargets.length - 3} more
+                      {date.getDate()}
                     </span>
-                  )}
+                    {dayTargets.length > 0 && (
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        {dayTargets.length} post{dayTargets.length > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5 mt-2 flex-1">
+                    {dayTargets.slice(0, 3).map((item) => (
+                      <Link
+                        key={item.id}
+                        href="/queue"
+                        className="block p-1.5 rounded-md text-[11px] bg-white border border-slate-200 hover:border-blue-400 shadow-xs transition group"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`w-3.5 h-3.5 rounded text-[8px] font-bold text-white flex items-center justify-center flex-shrink-0 ${
+                              item.socialAccount.provider === 'linkedin'
+                                ? 'bg-[#0077B5]'
+                                : item.socialAccount.provider === 'x'
+                                ? 'bg-black'
+                                : 'bg-indigo-600'
+                            }`}
+                          >
+                            {item.socialAccount.provider === 'linkedin' ? 'in' : item.socialAccount.provider === 'x' ? '𝕏' : 'M'}
+                          </span>
+                          <span className="text-slate-800 font-medium truncate group-hover:text-blue-600">
+                            {item.post.canonicalContent}
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+
+                    {dayTargets.length > 3 && (
+                      <span className="text-[10px] font-semibold text-slate-500 block text-center">
+                        +{dayTargets.length - 3} more
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

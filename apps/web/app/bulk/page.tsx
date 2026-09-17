@@ -189,7 +189,7 @@ Why asynchronous state machines are essential for background workers`
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Bulk Post Scheduler</h2>
@@ -208,7 +208,7 @@ Why asynchronous state machines are essential for background workers`
       {/* Input & Cadence Configuration */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Input Textarea */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 space-y-3 shadow-xs">
+        <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl border border-slate-200 space-y-3 shadow-xs">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
               Posts List (One per line or CSV)
@@ -223,12 +223,12 @@ Why asynchronous state machines are essential for background workers`
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
             placeholder="Paste your posts here, one per line..."
-            className="w-full p-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs font-mono leading-relaxed text-slate-800"
+            className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs font-mono leading-relaxed text-slate-800"
           />
         </div>
 
         {/* Right: Cadence Settings */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 space-y-4 shadow-xs">
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 space-y-4 shadow-xs">
           <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
             Cadence & Timing
           </label>
@@ -258,8 +258,9 @@ Why asynchronous state machines are essential for background workers`
               type="datetime-local"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full p-2.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
+              className="w-full p-2.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
+            >
+            </input>
           </div>
 
           <div>
@@ -311,7 +312,7 @@ Why asynchronous state machines are essential for background workers`
 
       {/* Interactive Preview Table */}
       {previewItems.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4 shadow-xs">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 space-y-4 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900">
@@ -325,15 +326,15 @@ Why asynchronous state machines are essential for background workers`
             <button
               onClick={handleCommit}
               disabled={committing || previewItems.filter((i) => i.isValid).length === 0}
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 transition"
+              className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 transition"
             >
               <Sparkles className="w-4 h-4" />
               {committing ? 'Committing...' : `Commit All (${previewItems.filter((i) => i.isValid).length}) Posts`}
             </button>
           </div>
 
-          <div className="border border-slate-200 rounded-lg overflow-hidden max-h-96 overflow-y-auto">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="border border-slate-200 rounded-lg overflow-x-auto max-h-96 overflow-y-auto">
+            <table className="w-full text-left text-xs border-collapse min-w-[550px]">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold sticky top-0">
                 <tr>
                   <th className="p-3 w-12 text-center">#</th>
@@ -349,7 +350,7 @@ Why asynchronous state machines are essential for background workers`
                     <td className="p-3 font-semibold text-slate-700 whitespace-nowrap">
                       {item.publishAtLocalDisplay}
                     </td>
-                    <td className="p-3 text-slate-800 line-clamp-1">{item.content}</td>
+                    <td className="p-3 text-slate-800 break-words line-clamp-2 max-w-xs">{item.content}</td>
                     <td className="p-3 text-center whitespace-nowrap">
                       {item.isValid ? (
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
