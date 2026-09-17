@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   PenSquare,
@@ -20,6 +20,10 @@ import {
   Layers,
   ArrowRight,
   RefreshCw,
+  Brain,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface SocialAccount {
@@ -41,6 +45,23 @@ interface McpClientInfo {
   toolCallsCount: number;
   description: string;
   version: string;
+}
+
+interface ThinkingStep {
+  id: string;
+  text: string;
+  detail?: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
+interface ThinkingState {
+  isActive: boolean;
+  status: 'idle' | 'thinking' | 'completed' | 'error';
+  elapsedSec: number;
+  currentStepIndex: number;
+  steps: ThinkingStep[];
+  error?: string | null;
+  expanded: boolean;
 }
 
 const COMMON_TIMEZONES = [
@@ -164,6 +185,21 @@ export default function ComposePage() {
   const [aiTopic, setAiTopic] = useState('');
   const [aiTone, setAiTone] = useState<'professional' | 'thought-leadership' | 'punchy' | 'casual' | 'educational'>('thought-leadership');
   const [aiGenerating, setAiGenerating] = useState(false);
+
+  // AI Thinking Chatbot state
+  const [thinkingState, setThinkingState] = useState<ThinkingState>({
+    isActive: false,
+    status: 'idle',
+    elapsedSec: 0,
+    currentStepIndex: 0,
+    steps: [],
+    error: null,
+    expanded: true,
+  });
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const stepRef = useRef<NodeJS.Timeout | null>(null);
+
   const [aiDrafts, setAiDrafts] = useState<{
     topic: string;
     tone: string;
@@ -203,7 +239,6 @@ export default function ComposePage() {
           const mcpData = await mcpRes.json();
           if (mcpData.clients && mcpData.clients.length > 0) {
             setMcpClients(mcpData.clients);
-            // Default to antigravity if present, or first connected
             const preferred = mcpData.clients.find((c: McpClientInfo) => c.id === 'antigravity') ||
               mcpData.clients.find((c: McpClientInfo) => c.status === 'connected') ||
               mcpData.clients[0];
@@ -217,6 +252,11 @@ export default function ComposePage() {
       }
     }
     load();
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (stepRef.current) clearInterval(stepRef.current);
+    };
   }, []);
 
   async function handleTestHandshake(clientId: string) {
@@ -231,7 +271,6 @@ export default function ComposePage() {
         message: `Handshake OK (${data.latencyMs}ms)`,
       });
 
-      // Update client status in state
       setMcpClients((prev) =>
         prev.map((c) =>
           c.id === clientId
@@ -250,26 +289,138 @@ export default function ComposePage() {
     }
   }
 
+  function getThinkingSteps(clientName: string, transport: string, topic: string, tone: string): ThinkingStep[] {
+    const topicExcerpt = topic.length > 28 ? `${topic.slice(0, 28)}...` : topic;
+    return [
+      {
+        id: 'step-init',
+        text: `Initiating connection to ${clientName}`,
+        detail: `Establishing session over local ${transport} JSON-RPC transport`,
+        status: 'in_progress',
+      },
+      {
+        id: 'step-dispatch',
+        text: `Invoking MCP tool 'social_generate_content'`,
+        detail: `Sending arguments: { topic: "${topicExcerpt}", tone: "${tone}" }`,
+        status: 'pending',
+      },
+      {
+        id: 'step-reasoning',
+        text: `Analyzing narrative structure & audience resonance`,
+        detail: `Applying ${tone.replace('-', ' ')} framing and core value anchors`,
+        status: 'pending',
+      },
+      {
+        id: 'step-linkedin',
+        text: `Drafting LinkedIn hook & long-form breakdown`,
+        detail: `Structuring opening hook, bullet points, call to action & hashtags`,
+        status: 'pending',
+      },
+      {
+        id: 'step-x',
+        text: `Synthesizing high-impact post for X (Twitter)`,
+        detail: `Strict validation of 280-character boundary limit and viral punch`,
+        status: 'pending',
+      },
+      {
+        id: 'step-finalize',
+        text: `Auditing constraints & formatting payload`,
+        detail: `Verifying cross-platform formatting, hashtags and latency metrics`,
+        status: 'pending',
+      },
+    ];
+  }
+
   async function handleAiGenerate() {
     if (!aiTopic.trim()) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (stepRef.current) clearInterval(stepRef.current);
+
     setAiGenerating(true);
     setErrorMsg(null);
-    try {
-      const res = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic: aiTopic,
-          tone: aiTone,
-          platforms: ['linkedin', 'x'],
-          clientId: selectedMcpId,
-        }),
+    setAiDrafts(null);
+
+    const client = selectedClient;
+    const initialSteps = getThinkingSteps(client.name, client.transport, aiTopic, aiTone);
+
+    setThinkingState({
+      isActive: true,
+      status: 'thinking',
+      elapsedSec: 0,
+      currentStepIndex: 0,
+      steps: initialSteps,
+      error: null,
+      expanded: true,
+    });
+
+    const startTime = Date.now();
+
+    // Elapsed seconds stopwatch (ticks every 100ms)
+    timerRef.current = setInterval(() => {
+      setThinkingState((prev) => ({
+        ...prev,
+        elapsedSec: parseFloat(((Date.now() - startTime) / 1000).toFixed(1)),
+      }));
+    }, 100);
+
+    // Dynamic progressive thought progression (every 400ms)
+    stepRef.current = setInterval(() => {
+      setThinkingState((prev) => {
+        if (prev.currentStepIndex >= prev.steps.length - 1) {
+          return prev;
+        }
+        const nextIndex = prev.currentStepIndex + 1;
+        const updatedSteps = prev.steps.map((s, idx) => {
+          if (idx < nextIndex) return { ...s, status: 'completed' as const };
+          if (idx === nextIndex) return { ...s, status: 'in_progress' as const };
+          return s;
+        });
+        return {
+          ...prev,
+          currentStepIndex: nextIndex,
+          steps: updatedSteps,
+        };
       });
-      if (!res.ok) throw new Error('Failed to generate draft with AI.');
+    }, 420);
+
+    try {
+      // Dispatch API request in parallel with a realistic cognitive pacing (~2.2s)
+      const [res] = await Promise.all([
+        fetch('/api/ai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: aiTopic,
+            tone: aiTone,
+            platforms: ['linkedin', 'x'],
+            clientId: selectedMcpId,
+          }),
+        }),
+        new Promise((resolve) => setTimeout(resolve, 2200)),
+      ]);
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to generate draft with AI.');
+      }
+
       const data = await res.json();
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (stepRef.current) clearInterval(stepRef.current);
+
+      const totalSec = parseFloat(((Date.now() - startTime) / 1000).toFixed(1));
+
+      setThinkingState((prev) => ({
+        ...prev,
+        status: 'completed',
+        elapsedSec: totalSec,
+        currentStepIndex: prev.steps.length,
+        steps: prev.steps.map((s) => ({ ...s, status: 'completed' as const })),
+        expanded: false, // Collapse thinking box by default so drafts take focus
+      }));
+
       setAiDrafts(data);
 
-      // Refresh client usage count in state
       setMcpClients((prev) =>
         prev.map((c) =>
           c.id === selectedMcpId
@@ -278,6 +429,17 @@ export default function ComposePage() {
         )
       );
     } catch (err: any) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (stepRef.current) clearInterval(stepRef.current);
+
+      const totalSec = parseFloat(((Date.now() - startTime) / 1000).toFixed(1));
+      setThinkingState((prev) => ({
+        ...prev,
+        status: 'error',
+        elapsedSec: totalSec,
+        error: err.message || 'AI generation failed',
+        expanded: true,
+      }));
       setErrorMsg(err.message || 'AI Generation error');
     } finally {
       setAiGenerating(false);
@@ -301,10 +463,8 @@ export default function ComposePage() {
 
   function applyAiDrafts() {
     if (!aiDrafts) return;
-    // Apply LinkedIn or canonical to canonical content
     setCanonicalContent(aiDrafts.variations.linkedin || aiDrafts.canonicalContent);
 
-    // Apply X variation to X account override if exists
     const updatedOverrides = { ...overrides };
     const xAcc = accounts.find((a) => a.provider === 'x');
     if (xAcc && aiDrafts.variations.x) {
@@ -312,7 +472,6 @@ export default function ComposePage() {
     }
     setOverrides(updatedOverrides);
 
-    // Auto-select all relevant channels
     if (accounts.length > 0) {
       setSelectedAccountIds(accounts.map((a) => a.id));
     }
@@ -599,8 +758,8 @@ export default function ComposePage() {
             >
               {aiGenerating ? (
                 <>
-                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Calling {selectedClient?.name || 'MCP Agent'}...
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Thinking with {selectedClient?.name || 'MCP'}...
                 </>
               ) : (
                 <>
@@ -610,6 +769,185 @@ export default function ComposePage() {
               )}
             </button>
           </div>
+
+          {/* AI Chatbot Thinking State Component */}
+          {thinkingState.isActive && (
+            <div
+              className={`rounded-2xl border transition-all duration-300 overflow-hidden shadow-xs ${
+                thinkingState.status === 'thinking'
+                  ? 'border-indigo-300 bg-gradient-to-b from-indigo-50/90 via-purple-50/40 to-white ring-2 ring-indigo-500/10'
+                  : thinkingState.status === 'completed'
+                  ? 'border-emerald-200 bg-white'
+                  : 'border-rose-200 bg-rose-50/40'
+              }`}
+            >
+              {/* Header Bar */}
+              <div
+                onClick={() =>
+                  setThinkingState((prev) => ({ ...prev, expanded: !prev.expanded }))
+                }
+                className={`p-4 flex items-center justify-between cursor-pointer select-none transition ${
+                  thinkingState.status === 'thinking'
+                    ? 'bg-indigo-100/40 hover:bg-indigo-100/60'
+                    : 'hover:bg-slate-50/80'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition ${
+                      thinkingState.status === 'thinking'
+                        ? 'bg-indigo-600 text-white shadow-xs ring-4 ring-indigo-100 animate-pulse'
+                        : thinkingState.status === 'completed'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-rose-600 text-white shadow-xs'
+                    }`}
+                  >
+                    {thinkingState.status === 'thinking' ? (
+                      <Brain className="w-4 h-4 animate-bounce" />
+                    ) : thinkingState.status === 'completed' ? (
+                      <CheckCircle2 className="w-4 h-4" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4" />
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-slate-900">
+                        {thinkingState.status === 'thinking'
+                          ? `Thinking with ${selectedClient?.name || 'MCP Agent'}...`
+                          : thinkingState.status === 'completed'
+                          ? `Thought for ${thinkingState.elapsedSec}s via ${selectedClient?.name || 'MCP'}`
+                          : `Generation Failed (${thinkingState.elapsedSec}s)`}
+                      </span>
+
+                      {thinkingState.status === 'thinking' && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-200/80 text-indigo-800 font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-ping" />
+                          {thinkingState.elapsedSec}s
+                        </span>
+                      )}
+
+                      {thinkingState.status === 'completed' && (
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          ✓ Completed
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] text-slate-500 mt-0.5 truncate max-w-md">
+                      {thinkingState.status === 'thinking'
+                        ? thinkingState.steps[thinkingState.currentStepIndex]?.text || 'Reasoning through prompt...'
+                        : thinkingState.status === 'completed'
+                        ? `${thinkingState.steps.length} reasoning steps verified`
+                        : thinkingState.error || 'Execution stopped'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                  <span className="text-[11px] hidden sm:inline">
+                    {thinkingState.expanded ? 'Hide thoughts' : 'View thoughts'}
+                  </span>
+                  {thinkingState.expanded ? (
+                    <ChevronUp className="w-4 h-4 text-slate-500" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-slate-500" />
+                  )}
+                </div>
+              </div>
+
+              {/* Shimmer progress line while thinking */}
+              {thinkingState.status === 'thinking' && (
+                <div className="h-0.5 w-full bg-indigo-100 overflow-hidden relative">
+                  <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 w-2/3 animate-pulse" />
+                </div>
+              )}
+
+              {/* Collapsible Thoughts Stream */}
+              {thinkingState.expanded && (
+                <div className="p-4 pt-2 border-t border-slate-100/80 space-y-2 bg-slate-50/50">
+                  {thinkingState.steps.map((step, idx) => {
+                    const isCurrent = idx === thinkingState.currentStepIndex && thinkingState.status === 'thinking';
+                    const isDone = idx < thinkingState.currentStepIndex || thinkingState.status === 'completed';
+                    const isFailed = idx === thinkingState.currentStepIndex && thinkingState.status === 'error';
+
+                    return (
+                      <div
+                        key={step.id}
+                        className={`flex items-start gap-2.5 text-xs transition p-2 rounded-xl ${
+                          isCurrent
+                            ? 'bg-white border border-indigo-200 shadow-xs'
+                            : 'bg-transparent'
+                        }`}
+                      >
+                        <div className="mt-0.5 flex-shrink-0">
+                          {isDone ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : isCurrent ? (
+                            <Loader2 className="w-3.5 h-3.5 text-indigo-600 animate-spin" />
+                          ) : isFailed ? (
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                          ) : (
+                            <div className="w-3.5 h-3.5 rounded-full border border-slate-300 flex items-center justify-center text-[9px] text-slate-400">
+                              {idx + 1}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-0.5 flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`font-semibold ${
+                                isCurrent
+                                  ? 'text-indigo-950 font-bold'
+                                  : isDone
+                                  ? 'text-slate-800'
+                                  : isFailed
+                                  ? 'text-rose-900'
+                                  : 'text-slate-400'
+                              }`}
+                            >
+                              {step.text}
+                            </span>
+                            {isCurrent && (
+                              <span className="text-[10px] text-indigo-600 font-mono animate-pulse">
+                                in progress...
+                              </span>
+                            )}
+                          </div>
+                          {step.detail && (
+                            <p
+                              className={`text-[11px] leading-tight ${
+                                isCurrent ? 'text-indigo-600/90' : isDone ? 'text-slate-500' : 'text-slate-400'
+                              }`}
+                            >
+                              {step.detail}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {thinkingState.status === 'error' && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex flex-col sm:flex-row items-center justify-between gap-2 mt-2">
+                      <span className="text-xs font-medium">
+                        {thinkingState.error || 'Encountered an issue calling MCP provider.'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleAiGenerate}
+                        className="px-3 py-1.5 rounded-lg bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 transition cursor-pointer"
+                      >
+                        Retry Generation
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Drafts Preview & Output Step */}
           {aiDrafts && (
