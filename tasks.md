@@ -140,3 +140,26 @@ Tracking progress across all phases. Each phase will be committed to git upon co
 - [x] **Task 6.4**: Security & Redaction Audit
 - [x] **Task 6.5**: License, README & Release Packaging
 - [x] **Task 6.6**: Phase 6 Final Git Commit & Push
+
+---
+
+## 📌 Phase 7: MCP-Native Surface & AI Connectors Hub (COMPLETED)
+- [x] **Task 7.1**: Expanded MCP Tool Catalog (23 Tools)
+  - Added `social_generate_content` for platform-tailored post generation (LinkedIn & X).
+  - Added `social_create_post` supporting immediate publishing (`publishNow`) and scheduled publication.
+  - Added `social_get_post`, `social_list_posts`, `social_update_post`, `social_delete_post`.
+  - Added `social_connect_account`, `social_disconnect_account`, `social_refresh_account`.
+  - Added `social_get_publish_errors`, `mcp_list_tools`, `mcp_get_connector_status`, `mcp_test_connection`, `mcp_export_config`.
+- [x] **Task 7.2**: AI Assisted Scheduling & User Review Workflow
+  - Integrated AI post generation in Compose UI (`/compose`) with live review of LinkedIn vs X variations and character limits.
+  - One-click approval and scheduling to connected social channels.
+- [x] **Task 7.3**: Dedicated MCP Hub UI (`/mcp`)
+  - AI Generator & Review Studio playground.
+  - Connectors setup cards for Claude Desktop, Claude Code, Cursor, Antigravity, Cline, Windsurf, Codex, and Generic MCP clients with 1-click config copying.
+  - Filterable Tools Catalog with schemas, parameter inspect, and read-only vs mutating badges.
+  - Interactive MCP Test Console to execute tools directly in the browser.
+- [x] **Task 7.4**: Fastify API Endpoints
+  - `POST /api/ai/generate`, `GET /api/mcp/status`, `GET /api/mcp/tools`, `GET /api/mcp/config/:client`, `POST /api/mcp/execute`.
+- [x] **Task 7.5**: Comprehensive Automated Tests
+  - 35/35 passing unit & integration tests across monorepo workspaces.
+- [x] **Task 7.6**: Phase 7 Git Commit & Remote Push

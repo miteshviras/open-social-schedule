@@ -66,6 +66,59 @@ export default function ComposePage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // AI Assistant generator state
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiTone, setAiTone] = useState<'professional' | 'thought-leadership' | 'punchy' | 'casual' | 'educational'>('thought-leadership');
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiDrafts, setAiDrafts] = useState<{
+    topic: string;
+    tone: string;
+    canonicalContent: string;
+    variations: { linkedin: string; x: string };
+    suggestedHashtags: string[];
+    characterCounts: { linkedin: number; x: number };
+  } | null>(null);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
+
+  async function handleAiGenerate() {
+    if (!aiTopic.trim()) return;
+    setAiGenerating(true);
+    setErrorMsg(null);
+    try {
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: aiTopic,
+          tone: aiTone,
+          platforms: ['linkedin', 'x'],
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to generate draft with AI.');
+      const data = await res.json();
+      setAiDrafts(data);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'AI Generation error');
+    } finally {
+      setAiGenerating(false);
+    }
+  }
+
+  function applyAiDrafts() {
+    if (!aiDrafts) return;
+    setCanonicalContent(aiDrafts.variations.linkedin || aiDrafts.canonicalContent);
+    const updatedOverrides = { ...overrides };
+    const xAcc = accounts.find((a) => a.provider === 'x');
+    if (xAcc && aiDrafts.variations.x) {
+      updatedOverrides[xAcc.id] = aiDrafts.variations.x;
+    }
+    setOverrides(updatedOverrides);
+    setAiNotice('Draft content applied to editor! Review below and click "Schedule Post" when ready.');
+    setShowAiAssistant(false);
+    setTimeout(() => setAiNotice(null), 8000);
+  }
+
   useEffect(() => {
     async function load() {
       try {
@@ -154,12 +207,188 @@ export default function ComposePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Compose Post</h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Create canonical content, set platform-specific overrides, and schedule across networks.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Compose Post</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Create canonical content, set platform-specific overrides, or generate with AI via MCP.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowAiAssistant((prev) => !prev)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-xs hover:from-indigo-700 hover:to-blue-700 transition"
+        >
+          <Sparkles className="w-4 h-4 text-indigo-200" />
+          {showAiAssistant ? 'Hide AI Assistant' : 'Generate with AI'}
+        </button>
       </div>
+
+      {aiNotice && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2.5 animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span>{aiNotice}</span>
+        </div>
+      )}
+
+      {/* AI Assistant Drawer / Panel */}
+      {showAiAssistant && (
+        <div className="bg-gradient-to-b from-indigo-50/60 to-white p-6 rounded-2xl border border-indigo-200 shadow-sm space-y-5 animate-fadeIn">
+          <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-indigo-600 text-white">
+                <Sparkles className="w-4 h-4" />
+              </span>
+              <div>
+                <h3 className="text-sm font-bold text-indigo-950">AI Content Generator (MCP-Powered)</h3>
+                <p className="text-xs text-indigo-600/80">
+                  Generate platform-optimized drafts for LinkedIn and X, review side-by-side, then schedule in one click.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-slate-700 block">
+              What would you like to post about?
+            </label>
+            <textarea
+              rows={3}
+              value={aiTopic}
+              onChange={(e) => setAiTopic(e.target.value)}
+              placeholder="e.g. Announcing our new open-source release with native Model Context Protocol (MCP) support and local data privacy..."
+              className="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            />
+
+            {/* Prompt Quick Chips */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[11px] font-medium text-slate-400">Quick ideas:</span>
+              {[
+                'Product launch announcement',
+                'Engineering architecture breakdown',
+                'Weekly productivity tip',
+                'Local-first privacy manifesto',
+              ].map((chip) => (
+                <button
+                  type="button"
+                  key={chip}
+                  onClick={() => setAiTopic(chip)}
+                  className="text-[11px] px-2.5 py-1 rounded-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium transition"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tone Selector & Action */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600">Tone:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {(['thought-leadership', 'professional', 'punchy', 'casual', 'educational'] as const).map((t) => (
+                  <button
+                    type="button"
+                    key={t}
+                    onClick={() => setAiTone(t)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition ${
+                      aiTone === t
+                        ? 'bg-indigo-600 text-white font-semibold shadow-xs'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {t.replace('-', ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleAiGenerate}
+              disabled={aiGenerating || !aiTopic.trim()}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white flex items-center justify-center gap-2 transition"
+            >
+              {aiGenerating ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Generating Drafts...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Generate Drafts
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Drafts Preview & Review Step */}
+          {aiDrafts && (
+            <div className="pt-4 border-t border-indigo-100 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Generated Platform Variations (Review & Agree)
+                </h4>
+                <span className="text-xs text-indigo-600 font-medium">Ready to apply</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* LinkedIn Version */}
+                <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#0077B5] flex items-center gap-1.5">
+                      <span className="w-4 h-4 rounded bg-[#0077B5] text-white flex items-center justify-center text-[10px]">in</span>
+                      LinkedIn Version
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {aiDrafts.characterCounts.linkedin} chars
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                    {aiDrafts.variations.linkedin}
+                  </p>
+                </div>
+
+                {/* X Version */}
+                <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-black flex items-center gap-1.5">
+                      <span className="w-4 h-4 rounded bg-black text-white flex items-center justify-center text-[10px]">𝕏</span>
+                      X / Twitter Version
+                    </span>
+                    <span
+                      className={`text-[11px] font-mono font-semibold px-2 py-0.5 rounded ${
+                        aiDrafts.characterCounts.x <= 280
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                      }`}
+                    >
+                      {aiDrafts.characterCounts.x} / 280 chars
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                    {aiDrafts.variations.x}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action: Apply to Editor */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={applyAiDrafts}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xs flex items-center gap-2 transition"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Agree & Apply to Composer
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {errorMsg && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2.5">

@@ -269,4 +269,29 @@ export class ScheduleService {
       },
     });
   }
+
+  /**
+   * Retrieves recent failed publish attempts across all targets.
+   */
+  public static async getPublishErrors(limit: number = 20) {
+    return await prisma.publishAttempt.findMany({
+      where: { outcome: 'failure' },
+      orderBy: { startedAt: 'desc' },
+      take: limit,
+      include: {
+        postTarget: {
+          include: {
+            post: true,
+            socialAccount: {
+              select: {
+                id: true,
+                provider: true,
+                displayName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }

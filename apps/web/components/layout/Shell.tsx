@@ -16,6 +16,7 @@ import {
   Cpu,
   RefreshCw,
   ExternalLink,
+  Bot,
 } from 'lucide-react';
 
 interface ShellProps {
@@ -53,6 +54,7 @@ export default function Shell({ children }: ShellProps) {
     { href: '/compose', label: 'Compose Post', icon: PenSquare },
     { href: '/bulk', label: 'Bulk Scheduler', icon: Layers },
     { href: '/accounts', label: 'Connected Accounts', icon: Share2 },
+    { href: '/mcp', label: 'MCP AI Hub', icon: Bot },
   ];
 
   return (

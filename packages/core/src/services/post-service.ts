@@ -112,6 +112,16 @@ export class PostService {
   }
 
   /**
+   * Updates canonical post content.
+   */
+  public static async updatePost(id: string, data: { canonicalContent?: string }) {
+    return await prisma.post.update({
+      where: { id },
+      data,
+    });
+  }
+
+  /**
    * Deletes a post and cascades to targets.
    */
   public static async deletePost(id: string) {
