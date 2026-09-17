@@ -45,12 +45,33 @@ const CLIENT_OPTIONS = [
   { id: 'generic', name: 'Generic MCP Client', badge: 'Standard', desc: 'Any client implementing the Model Context Protocol stdio specification' },
 ];
 
+type TabType = 'ai-generator' | 'connectors' | 'catalog' | 'console';
+
 export default function McpHubPage() {
-  const [activeTab, setActiveTab] = useState<'ai-generator' | 'connectors' | 'catalog' | 'console'>('ai-generator');
+  const [activeTab, setActiveTab] = useState<TabType>('ai-generator');
   const [status, setStatus] = useState<any>(null);
   const [tools, setTools] = useState<McpToolMeta[]>([]);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
+
+  function handleTabChange(tabId: TabType) {
+    setActiveTab(tabId);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tabId);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get('tab') as TabType;
+      if (t && ['ai-generator', 'connectors', 'catalog', 'console'].includes(t)) {
+        setActiveTab(t);
+      }
+    }
+  }, []);
 
   // Connectors Setup State
   const [selectedClient, setSelectedClient] = useState('claude-desktop');
@@ -325,8 +346,9 @@ export default function McpHubPage() {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 text-xs font-semibold rounded-t-xl transition border-b-2 whitespace-nowrap flex-shrink-0 ${
+              type="button"
+              onClick={() => handleTabChange(tab.id as TabType)}
+              className={`flex items-center gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 text-xs font-semibold rounded-t-xl transition border-b-2 whitespace-nowrap flex-shrink-0 cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 isActive
                   ? 'border-blue-600 text-blue-600 bg-white shadow-xs'
                   : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -749,9 +771,9 @@ export default function McpHubPage() {
                     type="button"
                     onClick={() => {
                       setSelectedTool(tool.name);
-                      setActiveTab('console');
+                      handleTabChange('console');
                     }}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
                   >
                     Test in Console &rarr;
                   </button>
