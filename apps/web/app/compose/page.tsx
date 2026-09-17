@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   PenSquare,
   Clock,
@@ -600,83 +601,56 @@ export default function ComposePage() {
             </span>
           </div>
 
-          {/* Step 1: Select MCP Provider */}
-          <div className="space-y-2.5">
+          {/* Step 1: Select MCP Provider (Short & Connected Only) */}
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                 <Cpu className="w-3.5 h-3.5 text-indigo-600" />
-                Step 1: Choose Connected MCP Provider
+                Step 1: Select Connected MCP Provider
               </label>
-              <span className="text-[11px] text-slate-400">Communicates over stdio JSON-RPC or native runtime</span>
+              <Link
+                href="/mcp?tab=connectors"
+                prefetch={false}
+                className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
+              >
+                + Connect More
+              </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {mcpClients.map((client) => {
+            <div className="flex flex-wrap items-center gap-2">
+              {(mcpClients.filter((c) => c.status === 'connected').length > 0
+                ? mcpClients.filter((c) => c.status === 'connected')
+                : mcpClients.slice(0, 2)
+              ).map((client) => {
                 const isSelected = selectedMcpId === client.id;
-                const isConnected = client.status === 'connected';
-
                 return (
-                  <div
+                  <button
                     key={client.id}
+                    type="button"
                     onClick={() => setSelectedMcpId(client.id)}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition relative flex flex-col justify-between ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 border transition cursor-pointer ${
                       isSelected
-                        ? 'border-indigo-600 bg-indigo-50/80 shadow-xs ring-2 ring-indigo-500/20'
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50'
+                        ? 'border-indigo-600 bg-indigo-50/90 text-indigo-950 shadow-xs ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-bold text-slate-900 truncate">
-                          {client.name}
-                        </span>
-                        <span
-                          className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                            isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'
-                          }`}
-                          title={isConnected ? 'Connected & Active' : 'Ready / Configured'}
-                        />
-                      </div>
-                      <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
-                        {client.description}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-slate-100 text-[10px]">
-                      <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
-                        {client.transport}
-                      </span>
-                      {isSelected ? (
-                        <span className="text-indigo-600 font-bold flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Selected
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">Click to select</span>
-                      )}
-                    </div>
-                  </div>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                    <span className="font-bold">{client.name}</span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">
+                      {client.transport}
+                    </span>
+                    {isSelected && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 ml-0.5" />
+                    )}
+                  </button>
                 );
               })}
-            </div>
 
-            {/* Selected MCP Client Active Banner */}
-            {selectedClient && (
-              <div className="p-3 rounded-xl bg-white border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="p-1 rounded-md bg-indigo-100 text-indigo-700">
-                    <Terminal className="w-3.5 h-3.5" />
-                  </span>
-                  <div>
-                    <span className="font-bold text-slate-900">{selectedClient.name}</span>
-                    <span className="text-slate-400 text-[11px] ml-2">
-                      ({selectedClient.badge} • {selectedClient.transport} • {selectedClient.toolCallsCount} total calls)
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 self-end sm:self-auto">
+              {/* Handshake test inline */}
+              {selectedClient && (
+                <div className="flex items-center gap-1.5 pl-1">
                   {pingResult && pingResult.clientId === selectedClient.id && (
-                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
                       ✓ {pingResult.message}
                     </span>
                   )}
@@ -684,14 +658,15 @@ export default function ComposePage() {
                     type="button"
                     onClick={() => handleTestHandshake(selectedClient.id)}
                     disabled={testingMcpId === selectedClient.id}
-                    className="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[11px] font-semibold text-slate-700 transition flex items-center gap-1.5"
+                    title="Test connection to selected MCP"
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-medium text-slate-600 transition flex items-center gap-1 cursor-pointer"
                   >
                     <RefreshCw className={`w-3 h-3 ${testingMcpId === selectedClient.id ? 'animate-spin' : ''}`} />
                     {testingMcpId === selectedClient.id ? 'Testing...' : 'Test Handshake'}
                   </button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Step 2: Topic & Tone */}
