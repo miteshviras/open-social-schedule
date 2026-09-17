@@ -130,6 +130,126 @@ export class ScheduleService {
   }
 
   /**
+   * Updates an existing post target (content, schedule time, timezone, status).
+   */
+  public static async updateTarget(
+    targetId: string,
+    data: {
+      content?: string;
+      contentOverride?: string;
+      publishAtUtc?: Date;
+      timezone?: string;
+      status?: TargetStatus | string;
+    }
+  ) {
+    const target = await prisma.postTarget.findUniqueOrThrow({
+      where: { id: targetId },
+      include: { post: true },
+    });
+
+    if (data.timezone && !isValidTimezone(data.timezone)) {
+      throw new Error(`Invalid timezone: ${data.timezone}`);
+    }
+
+    const updateData: any = {};
+
+    if (data.publishAtUtc) {
+      updateData.publishAtUtc = data.publishAtUtc;
+    }
+
+    if (data.timezone) {
+      updateData.timezone = data.timezone;
+    }
+
+    // Handle content updates
+    if (data.contentOverride !== undefined) {
+      updateData.contentOverride = data.contentOverride;
+    } else if (data.content !== undefined) {
+      // If target had a content override, update the override
+      if (target.contentOverride !== null && target.contentOverride !== undefined) {
+        updateData.contentOverride = data.content;
+      } else {
+        // Otherwise update canonical content on post
+        await prisma.post.update({
+          where: { id: target.postId },
+          data: { canonicalContent: data.content },
+        });
+      }
+    }
+
+    // If rescheduling or resetting from failed/canceled, reset status to scheduled
+    if (data.status) {
+      updateData.status = data.status;
+      if (data.status === 'scheduled') {
+        updateData.nextAttemptAt = null;
+        updateData.lockedAt = null;
+        updateData.lockToken = null;
+      }
+    } else if (data.publishAtUtc && (target.status === 'failed' || target.status === 'retryable_failure' || target.status === 'canceled')) {
+      updateData.status = 'scheduled';
+      updateData.nextAttemptAt = null;
+      updateData.lockedAt = null;
+      updateData.lockToken = null;
+    }
+
+    return await prisma.postTarget.update({
+      where: { id: targetId },
+      data: updateData,
+      include: {
+        post: true,
+        socialAccount: {
+          select: {
+            id: true,
+            provider: true,
+            displayName: true,
+            username: true,
+            avatarUrl: true,
+            status: true,
+          },
+        },
+        attempts: {
+          orderBy: { attemptNumber: 'desc' },
+        },
+      },
+    });
+  }
+
+  /**
+   * Deletes a post target (either permanent hard-delete or cancel schedule).
+   */
+  public static async deleteTarget(targetId: string, permanent: boolean = false) {
+    const target = await prisma.postTarget.findUniqueOrThrow({
+      where: { id: targetId },
+      include: {
+        post: {
+          include: { targets: true },
+        },
+      },
+    });
+
+    if (permanent) {
+      await prisma.postTarget.delete({
+        where: { id: targetId },
+      });
+
+      // If post has no other targets, delete the orphaned parent post
+      if (target.post && target.post.targets.length <= 1) {
+        await prisma.post.delete({
+          where: { id: target.post.id },
+        }).catch(() => {});
+      }
+
+      return {
+        id: targetId,
+        status: 'deleted',
+        mode: 'permanent',
+      };
+    } else {
+      return await this.cancelSchedule(targetId);
+    }
+  }
+
+  /**
    * Reschedules an existing post target.
    */
   public static async rescheduleTarget(

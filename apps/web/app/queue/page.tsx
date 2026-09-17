@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Clock,
   CheckCircle2,
@@ -13,6 +14,9 @@ import {
   ChevronUp,
   History,
   AlertTriangle,
+  Eye,
+  Edit3,
+  Trash2,
 } from 'lucide-react';
 
 interface Attempt {
@@ -202,9 +206,15 @@ export default function QueuePage() {
                       )}
                     </div>
 
-                    <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap break-words line-clamp-3">
-                      {content}
-                    </p>
+                    <Link
+                      href={`/queue/${target.id}`}
+                      className="block group"
+                      title="View scheduled target details"
+                    >
+                      <p className="text-sm text-slate-800 group-hover:text-blue-600 transition leading-relaxed whitespace-pre-wrap break-words line-clamp-3">
+                        {content}
+                      </p>
+                    </Link>
 
                     <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-slate-400 pt-1">
                       <span className="flex items-center gap-1 font-medium text-slate-500">
@@ -237,30 +247,52 @@ export default function QueuePage() {
                       {target.status.toUpperCase()}
                     </span>
 
-                    <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      {/* Show / View Page Link */}
+                      <Link
+                        href={`/queue/${target.id}`}
+                        className="p-1.5 sm:px-2 sm:py-1 bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                        title="Show target details"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-blue-600" />
+                        <span className="hidden sm:inline">Show</span>
+                      </Link>
+
+                      {/* Edit Page Link */}
+                      <Link
+                        href={`/queue/${target.id}/edit`}
+                        className="p-1.5 sm:px-2 sm:py-1 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                        title="Edit scheduled target"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+                        <span className="hidden sm:inline">Edit</span>
+                      </Link>
+
+                      {/* Delete Page Link */}
+                      <Link
+                        href={`/queue/${target.id}/delete`}
+                        className="p-1.5 sm:px-2 sm:py-1 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                        title="Delete or cancel target"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Delete</span>
+                      </Link>
+
                       {target.status === 'scheduled' && (
-                        <>
-                          <button
-                            onClick={() => handlePublishNow(target.id)}
-                            className="px-2.5 sm:px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
-                            title="Publish immediately"
-                          >
-                            <Send className="w-3 h-3" />
-                            <span className="hidden xs:inline">Publish</span> Now
-                          </button>
-                          <button
-                            onClick={() => handleCancel(target.id)}
-                            className="px-2.5 sm:px-3 py-1.5 bg-slate-50 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold transition"
-                          >
-                            Cancel
-                          </button>
-                        </>
+                        <button
+                          onClick={() => handlePublishNow(target.id)}
+                          className="px-2.5 sm:px-3 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                          title="Publish immediately"
+                        >
+                          <Send className="w-3 h-3" />
+                          <span className="hidden xs:inline">Publish</span> Now
+                        </button>
                       )}
 
                       {(target.status === 'failed' || target.status === 'retryable_failure') && (
                         <button
                           onClick={() => handlePublishNow(target.id)}
-                          className="px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+                          className="px-3 py-1 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
                         >
                           <RefreshCw className="w-3 h-3" />
                           Retry
@@ -269,7 +301,7 @@ export default function QueuePage() {
 
                       <button
                         onClick={() => toggleDetails(target.id)}
-                        className="p-1.5 text-slate-400 hover:text-slate-700 transition"
+                        className="p-1.5 text-slate-400 hover:text-slate-700 transition cursor-pointer"
                         title="Audit history"
                       >
                         {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}

@@ -165,19 +165,54 @@ export async function buildApp() {
 
   fastify.patch('/api/post-targets/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as { publishAtUtc: string; timezone?: string };
-    const updated = await ScheduleService.rescheduleTarget(
-      id,
-      new Date(body.publishAtUtc),
-      body.timezone
-    );
+    const body = request.body as {
+      publishAtUtc?: string;
+      timezone?: string;
+      content?: string;
+      contentOverride?: string;
+      status?: string;
+    };
+    const updated = await ScheduleService.updateTarget(id, {
+      publishAtUtc: body.publishAtUtc ? new Date(body.publishAtUtc) : undefined,
+      timezone: body.timezone,
+      content: body.content,
+      contentOverride: body.contentOverride,
+      status: body.status,
+    });
+    return reply.send(updated);
+  });
+
+  fastify.put('/api/post-targets/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const body = request.body as {
+      publishAtUtc?: string;
+      timezone?: string;
+      content?: string;
+      contentOverride?: string;
+      status?: string;
+    };
+    const updated = await ScheduleService.updateTarget(id, {
+      publishAtUtc: body.publishAtUtc ? new Date(body.publishAtUtc) : undefined,
+      timezone: body.timezone,
+      content: body.content,
+      contentOverride: body.contentOverride,
+      status: body.status,
+    });
     return reply.send(updated);
   });
 
   fastify.delete('/api/post-targets/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const canceled = await ScheduleService.cancelSchedule(id);
-    return reply.send(canceled);
+    const query = (request.query as { permanent?: string; mode?: string }) || {};
+    const body = (request.body as { permanent?: boolean; mode?: string }) || {};
+    const isPermanent =
+      query.permanent === 'true' ||
+      query.mode === 'permanent' ||
+      body.permanent === true ||
+      body.mode === 'permanent';
+
+    const result = await ScheduleService.deleteTarget(id, isPermanent);
+    return reply.send(result);
   });
 
   fastify.post('/api/post-targets/:id/publish', async (request, reply) => {
