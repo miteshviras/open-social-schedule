@@ -150,7 +150,10 @@ export class LinkedInProvider implements SocialProvider {
   }
 
   public getAuthorizationUrl(options: OAuthAuthorizationUrlOptions): string {
-    const scopes = options.scopes || ['openid', 'profile', 'email', 'w_member_social'];
+    const defaultScopes = process.env.LINKEDIN_SCOPES
+      ? process.env.LINKEDIN_SCOPES.split(',').map((s) => s.trim()).filter(Boolean)
+      : ['openid', 'profile', 'email', 'w_member_social'];
+    const scopes = options.scopes || defaultScopes;
     const redirectUri = options.redirectUri || this.redirectUri;
 
     const params = new URLSearchParams({

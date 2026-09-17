@@ -60,13 +60,21 @@ export async function buildApp() {
   // Get OAuth initiation URL
   fastify.get('/api/auth/:provider/url', async (request, reply) => {
     const { provider } = request.params as { provider: string };
+    const query = (request.query as { scopes?: string; redirectUri?: string }) || {};
     if (!ProviderRegistry.has(provider)) {
       return reply.status(400).send({ error: `Unsupported provider: ${provider}` });
     }
 
     const instance = ProviderRegistry.get(provider);
     const state = `st_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    const url = instance.getAuthorizationUrl({ state });
+    const customScopes = query.scopes
+      ? query.scopes.split(',').map((s) => s.trim()).filter(Boolean)
+      : undefined;
+    const url = instance.getAuthorizationUrl({
+      state,
+      scopes: customScopes,
+      redirectUri: query.redirectUri,
+    });
 
     return reply.send({ url, state, provider });
   });
