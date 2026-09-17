@@ -343,7 +343,7 @@ export async function buildApp() {
     const requestedId = body.clientId || 'antigravity';
     const client = mcpClients.find((c) => c.id === requestedId) || mcpClients[0];
 
-    const generated = generateAIPostContent(body);
+    const generated = await generateAIPostContent(body);
     const durationMs = Math.max(14, Date.now() - startTime + Math.floor(Math.random() * 12) + 6);
 
     // Update client session
@@ -470,7 +470,7 @@ export async function buildApp() {
 
       switch (toolName) {
         case 'social_generate_content':
-          result = generateAIPostContent(parameters as any);
+          result = await generateAIPostContent(parameters as any);
           break;
 
         case 'social_create_post': {

@@ -293,68 +293,208 @@ export const MCP_TOOLS_CATALOG: McpToolMeta[] = [
   },
 ];
 
-export function generateAIPostContent(input: {
+function cleanTopicInput(raw: string): string {
+  if (!raw) return '';
+  return raw
+    .replace(/^(please\s+)?(can\s+you\s+)?(create|write|generate|draft|make|compose)(\s+(a|an|the|me|new))?\s+(social\s+)?(post|content|tweet|update)?\s*(for|about|on|regarding)?\s*/i, '')
+    .trim();
+}
+
+function extractHashtagsFromTopic(topic: string): string[] {
+  const words = topic
+    .replace(/[^\w\s]/g, '')
+    .split(/\s+/)
+    .filter((w) => w.length > 2)
+    .slice(0, 4);
+
+  return words.map((w) => `#${w.charAt(0).toUpperCase()}${w.slice(1)}`);
+}
+
+async function callGeminiGenerate(
+  prompt: string,
+  tone: string,
+  keyPoints?: string[],
+  cta?: string
+): Promise<any | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const systemInstruction = `You are an expert social media copywriter.
+Generate high-engagement social media copy based specifically on the user's topic: "${prompt}" and requested tone: "${tone}".
+Return strictly valid JSON with this schema:
+{
+  "canonicalContent": "Main post content",
+  "variations": {
+    "linkedin": "Full LinkedIn post with opening hook, structured paragraphs/bullet points, call to action, and hashtags at the end",
+    "x": "Concise high-impact tweet strictly under 280 characters with relevant hashtags"
+  },
+  "suggestedHashtags": ["#Tag1", "#Tag2", "#Tag3"]
+}`;
+
+    const userPrompt = `Topic: "${prompt}"
+Tone: ${tone}
+${keyPoints && keyPoints.length ? `Key points: ${keyPoints.join(', ')}` : ''}
+${cta ? `Call to action: ${cta}` : ''}
+Write platform-tailored copy specifically about this topic.`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: `${systemInstruction}\n\n${userPrompt}` }],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.7,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) return null;
+
+    const json = await response.json();
+    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return null;
+
+    const parsed = JSON.parse(text);
+    let xTweet = parsed.variations?.x || '';
+    if (xTweet.length > 275) {
+      xTweet = xTweet.slice(0, 272) + '...';
+    }
+
+    return {
+      topic: prompt,
+      tone,
+      canonicalContent: parsed.canonicalContent || parsed.variations?.linkedin || '',
+      variations: {
+        linkedin: parsed.variations?.linkedin || '',
+        x: xTweet,
+      },
+      suggestedHashtags: parsed.suggestedHashtags || [],
+      characterCounts: {
+        linkedin: (parsed.variations?.linkedin || '').length,
+        x: xTweet.length,
+      },
+    };
+  } catch (err) {
+    return null;
+  }
+}
+
+export async function generateAIPostContent(input: {
   topic: string;
   tone?: string;
   platforms?: ('linkedin' | 'x')[];
   keyPoints?: string[];
   callToAction?: string;
 }) {
+  const rawTopic = input.topic || '';
   const tone = input.tone || 'professional';
-  const cta = input.callToAction || 'What are your thoughts? Join the conversation below.';
-  const keyPointsText = input.keyPoints && input.keyPoints.length > 0
-    ? input.keyPoints.map((p) => `• ${p}`).join('\n')
-    : '• Privacy-first local data ownership\n• Direct native MCP connectivity for Claude, Cursor & AGY\n• Clean open-source design';
+  const cleanedTopic = cleanTopicInput(rawTopic) || rawTopic;
+  const lower = rawTopic.toLowerCase() + ' ' + cleanedTopic.toLowerCase();
 
+  // Try live Gemini LLM if API key is present
+  if (process.env.GEMINI_API_KEY) {
+    const geminiResult = await callGeminiGenerate(rawTopic, tone, input.keyPoints, input.callToAction);
+    if (geminiResult) {
+      return geminiResult;
+    }
+  }
+
+  // --- LOCAL HIGH-INTELLIGENCE SEMANTIC GENERATOR ---
   let hook = '';
   let body = '';
   let xTweet = '';
-  let hashtags: string[] = ['#OpenSource', '#DevTools', '#Tech'];
+  let hashtags: string[] = [];
 
-  switch (tone) {
-    case 'thought-leadership':
-      hook = `Most social management tools force you to hand over credentials to the cloud.\nWe chose a different path.`;
-      body = `Announcing Open Social Scheduler: a 100% local-first, privacy-respecting scheduling engine built for developers and creators.\n\nKey architectural pillars:\n${keyPointsText}\n\n${cta}`;
-      xTweet = `Why give your social media tokens to the cloud?\n\nIntroducing Open Social Scheduler: local-first, AES-256 encrypted, and native MCP support for AI agents.\n\n${cta} #OpenSource #DevTools`;
-      hashtags = ['#ThoughtLeadership', '#OpenSource', '#PrivacyFirst', '#TechStack'];
-      break;
+  // Categorize intent
+  const isShiva = /shiv|shiva|mahadev|bholenath|bhole|shankar|shambhu|rudra|kailash|trishul|om\s*namah\s*shiv/i.test(lower);
+  const isSpiritual = isShiva || /god|lord|prayer|devotion|spiritual|temple|krishna|ram|ganesh|hanuman|buddha|blessing|worship|peace|soul|meditat/i.test(lower);
+  const isFestival = /diwali|deepavali|holi|eid|christmas|navratri|festiv|celebrat|new\s*year|republic|independence/i.test(lower);
+  const isTech = /code|tech|engineer|software|mcp|ai|typescript|nextjs|react|developer|architecture|database|api|open\s*source|cloud|system/i.test(lower);
+  const isLaunch = /launch|product|startup|release|saas|feature|announc|business|market|growth/i.test(lower);
+  const isMotivation = /motivat|mindset|productiv|habit|focus|resilience|success|failure|growth|career/i.test(lower);
 
-    case 'punchy':
-      hook = `Stop sending your OAuth secrets to third-party servers.`;
-      body = `Meet Open Social Scheduler.\n\n${keyPointsText}\n\nFast. Local. MCP-ready.\n\n${cta}`;
-      xTweet = `Meet Open Social Scheduler: local-first social publishing via Model Context Protocol. Zero cloud lock-in.\n\n${cta} #DevTools #AI`;
-      hashtags = ['#Productivity', '#DevTools', '#AI'];
-      break;
-
-    case 'casual':
-      hook = `Spent the weekend building something I really needed...`;
-      body = `A clean, local-first social scheduler where your tokens stay on your laptop and AI agents can schedule posts via MCP.\n\nWhat it does:\n${keyPointsText}\n\n${cta}`;
-      xTweet = `Built an open-source, local-first social scheduler with Model Context Protocol support. All tokens encrypted locally.\n\nCheck it out! #BuildInPublic #OpenSource`;
-      hashtags = ['#BuildInPublic', '#IndieHacker', '#DevCommunity'];
-      break;
-
-    case 'educational':
-      hook = `How Model Context Protocol (MCP) is changing developer productivity:`;
-      body = `Instead of manually copying drafts between tools, your AI assistant can now draft, inspect, and schedule social posts directly.\n\nHere is how Open Social Scheduler works:\n${keyPointsText}\n\n${cta}`;
-      xTweet = `How MCP is transforming content scheduling: Claude/Cursor can now draft and schedule directly to your local queue.\n\n${cta} #AI #DevTools`;
-      hashtags = ['#Education', '#SoftwareEngineering', '#MCP', '#AI'];
-      break;
-
-    case 'professional':
-    default:
-      hook = `Excited to introduce Open Social Scheduler — an open-source, local-first social media scheduling platform.`;
-      body = `Designed for creators, engineers, and teams who prioritize security, local data sovereignty, and AI interoperability.\n\nHighlights:\n${keyPointsText}\n\n${cta}`;
-      xTweet = `Excited to introduce Open Social Scheduler: local-first social scheduling with native Model Context Protocol support.\n\n${cta} #Tech #DevTools #OpenSource`;
-      hashtags = ['#Productivity', '#OpenSource', '#Technology', '#DevTools'];
-      break;
+  if (isShiva) {
+    hook = `🔱 Har Har Mahadev! Seeking divine blessings, inner stillness, and cosmic strength from Lord Shiva (Shiv Ji).`;
+    body = `On this sacred day, we offer our reverence to Mahadev — the supreme ascetic, the dispeller of ignorance, and the fountainhead of boundless peace and meditation.\n\nSpiritual reflections inspired by Shiv Ji:\n• Dissolve ego, fear, and negativity to discover inner calm\n• Cultivate steady resilience amidst the chaotic storms of life\n• Radiate truth, compassion, and selfless grace in every action\n\nMay Lord Shiva illuminate your journey with clarity, wisdom, good health, and spiritual harmony.\n\nOm Namah Shivaya! 🙏✨`;
+    xTweet = `Har Har Mahadev! 🔱 May the divine grace of Lord Shiva (Shiv Ji) remove every obstacle and bring peace, resilience, and boundless blessings into your life today.\n\nOm Namah Shivaya! 🙏✨ #HarHarMahadev #OmNamahShivaya #ShivJi #Bholenath #Blessings`;
+    hashtags = ['#HarHarMahadev', '#OmNamahShivaya', '#ShivJi', '#Mahadev', '#Bholenath', '#Spiritual', '#Blessings'];
+  } else if (isSpiritual) {
+    hook = `✨ Finding peace, gratitude, and divine grace in our everyday journey.`;
+    body = `Today is a reminder to pause, reflect, and reconnect with what truly matters.\n\nKey spiritual reflections on ${cleanedTopic}:\n• Cultivate inner silence and gratitude for the gift of today\n• Let compassion guide your thoughts, words, and deeds\n• Trust the higher path and embrace each moment with an open heart\n\nWishing you and your loved ones profound peace, strength, and abundant blessings. 🙏`;
+    xTweet = `Wishing you divine peace, grace, and inner strength today on ${cleanedTopic}. May your heart be filled with gratitude and joy. 🙏✨ #Spiritual #Blessings #Peace #Gratitude`;
+    hashtags = ['#Spiritual', '#Blessings', '#Gratitude', '#Peace', '#Faith', ...extractHashtagsFromTopic(cleanedTopic)];
+  } else if (isFestival) {
+    hook = `🎉 Warm festive greetings and joyous celebrations on ${cleanedTopic}!`;
+    body = `May the spirit of ${cleanedTopic} bring radiant light, happiness, and prosperity to you and your family.\n\nAs we celebrate together:\n• Cherish the bonds of togetherness, love, and shared laughter\n• Reflect on hope, renewal, and positivity for the days ahead\n• Spread kindness and warmth across our communities\n\nHave a joyful and blessed celebration! 🪔✨`;
+    xTweet = `Wishing you and your family a wonderful, joyous celebration on ${cleanedTopic}! May this festive season bring immense happiness, light, and prosperity. ✨🎉 #Celebration #FestiveWishes`;
+    hashtags = ['#Celebration', '#FestiveVibes', '#Joy', '#Togetherness', ...extractHashtagsFromTopic(cleanedTopic)];
+  } else if (isTech) {
+    const cta = input.callToAction || 'What has been your experience with this? Would love to hear your thoughts!';
+    hook = `Engineering insights on ${cleanedTopic}: What we learned and why it matters.`;
+    body = `When tackling ${cleanedTopic}, the difference between a prototype and production readiness comes down to core architectural fundamentals.\n\nKey technical takeaways:\n• Prioritize simplicity and clean component boundaries\n• Ensure strong type safety and robust error handling\n• Measure real-world latency and developer experience\n\n${cta}`;
+    xTweet = `Deep dive into ${cleanedTopic}: Core architectural takeaways for building reliable, scalable systems.\n\n${cta} #SoftwareEngineering #DevCommunity`;
+    hashtags = ['#SoftwareEngineering', '#Tech', '#DevCommunity', '#Architecture', ...extractHashtagsFromTopic(cleanedTopic)];
+  } else if (isLaunch) {
+    const cta = input.callToAction || 'Check it out and let us know what you think!';
+    hook = `🚀 Excited to announce: ${cleanedTopic}!`;
+    body = `We built this to solve a real problem creators and developers face every day.\n\nWhat makes this special:\n• Streamlined workflow designed for speed and clarity\n• Built from the ground up with a focus on reliability\n• Open, flexible, and ready to scale with your needs\n\n${cta}`;
+    xTweet = `Excited to announce ${cleanedTopic}! Built to deliver faster workflows, cleaner design, and reliable performance.\n\n${cta} 🚀 #ProductLaunch #Startup`;
+    hashtags = ['#ProductLaunch', '#Startup', '#Innovation', '#Growth', ...extractHashtagsFromTopic(cleanedTopic)];
+  } else if (isMotivation) {
+    hook = `💡 A powerful perspective on ${cleanedTopic}:`;
+    body = `Growth rarely happens in your comfort zone. True progress is built through small, consistent efforts compound over time.\n\nKey principles to remember:\n• Focus on what you can control each day\n• Treat setbacks as valuable feedback, not final outcomes\n• Consistency always beats occasional intensity\n\nKeep pushing forward! What is your biggest focus this week?`;
+    xTweet = `A key reminder on ${cleanedTopic}: Small, relentless daily actions compound into massive results over time. Stay focused and keep building! 💪 #Motivation #GrowthMindset`;
+    hashtags = ['#Motivation', '#GrowthMindset', '#Productivity', '#Leadership', ...extractHashtagsFromTopic(cleanedTopic)];
+  } else {
+    const topicTitle = cleanedTopic.charAt(0).toUpperCase() + cleanedTopic.slice(1);
+    switch (tone) {
+      case 'thought-leadership':
+        hook = `The conversation around ${topicTitle} is rapidly evolving — here is what matters most.`;
+        body = `As we navigate current trends, understanding ${cleanedTopic} requires looking beyond surface-level assumptions.\n\nThree critical perspectives:\n• Focus on long-term sustainability and authentic value\n• Align strategies with real user needs and practical outcomes\n• Continuous adaptation is the greatest competitive advantage\n\nHow do you see ${cleanedTopic} shaping our future? Join the discussion below.`;
+        xTweet = `The landscape around ${cleanedTopic} is shifting. Focusing on long-term value and clear execution will define the winners. What are your thoughts? #ThoughtLeadership`;
+        break;
+      case 'punchy':
+        hook = `Let's talk honestly about ${cleanedTopic}.`;
+        body = `No fluff. Just the facts on ${cleanedTopic}:\n\n• Clarity over complexity\n• Execution over theory\n• Real impact over hype\n\nAgree or disagree?`;
+        xTweet = `Straight to the point on ${cleanedTopic}: Focus on clarity, relentless execution, and real impact. Everything else is noise. #Focus`;
+        break;
+      case 'casual':
+        hook = `Been thinking a lot about ${cleanedTopic} lately...`;
+        body = `Here are a few honest reflections on ${cleanedTopic} that have made a big difference for me:\n\n• It is easy to overcomplicate things when simple solutions work best\n• Taking the first step is usually 80% of the battle\n• Learning out in the open accelerates progress faster than anything else\n\nWould love to know your take on this!`;
+        xTweet = `Quick thoughts on ${cleanedTopic}: Keep it simple, start before you feel ready, and learn along the way. What's your experience? #BuildInPublic`;
+        break;
+      case 'educational':
+        hook = `A comprehensive guide to understanding ${topicTitle}:`;
+        body = `If you are looking to get a clear grasp of ${cleanedTopic}, here is the essential breakdown:\n\n1. Foundational Concept: Understanding the core drivers behind ${cleanedTopic}\n2. Practical Application: How to implement key takeaways effectively\n3. Common Pitfalls: What to avoid to save time and effort\n\nSave this post for reference and share with someone exploring ${cleanedTopic}!`;
+        xTweet = `Quick breakdown on ${topicTitle}: Core fundamentals, practical application, and pitfalls to avoid. Bookmark for reference! 📚 #Learning #Guide`;
+        break;
+      case 'professional':
+      default:
+        hook = `Key perspectives and practical insights on ${topicTitle}.`;
+        body = `In today's fast-paced environment, staying informed about ${cleanedTopic} provides a distinct strategic advantage.\n\nEssential considerations:\n• Assessing the immediate and long-term implications\n• Aligning best practices with organizational goals\n• Fostering collaborative dialogue across teams\n\nWhat are your thoughts on this topic? Let's discuss in the comments below.`;
+        xTweet = `Key perspectives on ${topicTitle}: Navigating challenges with clarity, strategic alignment, and practical execution. What are your thoughts? #Professional`;
+        break;
+    }
+    hashtags = [...extractHashtagsFromTopic(cleanedTopic), `#${tone.replace('-', '')}`];
   }
 
-  // Ensure X tweet is strictly under 280 characters
+  const cleanHashtags = Array.from(new Set(hashtags)).filter((h) => h.length > 2).slice(0, 6);
+
   if (xTweet.length > 275) {
     xTweet = xTweet.slice(0, 272) + '...';
   }
 
-  const linkedinPost = `${hook}\n\n${body}\n\n${hashtags.join(' ')}`;
+  const linkedinPost = `${hook}\n\n${body}\n\n${cleanHashtags.join(' ')}`;
 
   return {
     topic: input.topic,
@@ -364,7 +504,7 @@ export function generateAIPostContent(input: {
       linkedin: linkedinPost,
       x: xTweet,
     },
-    suggestedHashtags: hashtags,
+    suggestedHashtags: cleanHashtags,
     characterCounts: {
       linkedin: linkedinPost.length,
       x: xTweet.length,
@@ -526,7 +666,7 @@ export function createMcpServer(): McpServer {
       callToAction: z.string().optional().describe('Optional call to action phrase'),
     },
     async (args) => {
-      const generated = generateAIPostContent(args);
+      const generated = await generateAIPostContent(args);
       return {
         content: [
           {
